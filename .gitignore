@@ -1,3 +1,10 @@
 vendor
 coverage
 node_modules
+wordpress
+wp-tests-config.php
+.env
+
+tests/phpunit/tests/parser/regression
+tests/phpunit/fixtures
+.phpunit.result.cache

@@ -1,18 +1,22 @@
-<phpunit
-	bootstrap="tests/phpunit/includes/bootstrap.php"
-	backupGlobals="false"
-	colors="true"
-	>
-
-	<testsuites>
-		<testsuite name="tests">
-			<directory suffix=".php">tests/phpunit/tests/</directory>
-		</testsuite>
-	</testsuites>
-
-	<filter>
-		<whitelist>
-			<directory suffix=".php">lib</directory>
-		</whitelist>
-	</filter>
+<?xml version="1.0"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bootstrap="tests/phpunit/includes/bootstrap.php" backupGlobals="false" colors="true" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd">
+  <php>
+    <ini name="memory_limit" value="-1" />
+  </php>
+  <coverage>
+    <include>
+      <directory suffix=".php">lib</directory>
+    </include>
+  </coverage>
+  <testsuites>
+    <testsuite name="import">
+      <directory suffix=".php">tests/phpunit/tests/import</directory>
+    </testsuite>
+    <testsuite name="export">
+      <directory suffix=".php">tests/phpunit/tests/export</directory>
+    </testsuite>
+    <testsuite name="regression">
+      <directory suffix=".php">tests/phpunit/tests/parser/regression</directory>
+    </testsuite>
+  </testsuites>
 </phpunit>

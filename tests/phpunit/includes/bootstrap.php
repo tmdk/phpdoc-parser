@@ -1,10 +1,14 @@
 <?php
 
-if ( ! getenv( 'WP_TESTS_DIR' ) ) {
-	exit( '$_ENV["WP_TESTS_DIR"] is not set.' . PHP_EOL );
-}
+require_once __DIR__ . '/../../../vendor/autoload.php';
 
-include( __DIR__ . '/../../../vendor/autoload.php' );
+Dotenv\Dotenv::createUnsafeImmutable( dirname( __DIR__, 3 ) )->safeLoad();
+
+$_tests_dir = getenv( 'WP_TESTS_DIR' ) ?: getenv( 'WP_PHPUNIT__DIR' );
+
+if ( ! $_tests_dir ) {
+	exit( 'WP_TESTS_DIR or WP_PHPUNIT__DIR are not set.' . PHP_EOL );
+}
 
 /**
  * The WordPress tests functions.
@@ -16,13 +20,13 @@ include( __DIR__ . '/../../../vendor/autoload.php' );
  *
  * @since 1.0.0
  */
-require_once getenv( 'WP_TESTS_DIR' ) . '/includes/functions.php';
+require_once $_tests_dir . '/includes/functions.php';
 
-tests_add_filter( 'muplugins_loaded', function() {
-	$plugin_file = dirname( dirname( dirname( __DIR__ ) ) ) . '/plugin.php';
+tests_add_filter( 'muplugins_loaded', function () {
+	$plugin_file = dirname( __DIR__, 3 ) . '/plugin.php';
 	include( $plugin_file );
 	do_action( 'activate_' . plugin_basename( $plugin_file ) );
-});
+} );
 
 /**
  * Sets up the WordPress test environment.
@@ -32,7 +36,7 @@ tests_add_filter( 'muplugins_loaded', function() {
  *
  * @since 1.0.0
  */
-require getenv( 'WP_TESTS_DIR' ) . '/includes/bootstrap.php';
+require $_tests_dir . '/includes/bootstrap.php';
 
 include( __DIR__ . '/export-testcase.php' );
 include( __DIR__ . '/testcases/import.php' );

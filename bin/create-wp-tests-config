@@ -1,0 +1,11 @@
+#!/bin/bash
+
+awk '
+					/put your unique phrase here/ {
+						cmd = "head -c1024 /dev/urandom | sha1sum | cut -d\\  -f1"
+						cmd | getline str
+						close(cmd)
+						gsub("put your unique phrase here", str)
+					}
+					{ print }
+				' wp-tests-config-sample.php > wp-tests-config.php
