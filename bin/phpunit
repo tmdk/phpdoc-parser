@@ -5,6 +5,14 @@ if ( ! ini_get( 'date.timezone' ) ) {
 	ini_set( 'date.timezone', 'UTC' );
 }
 
+if ( function_exists( 'xdebug_set_filter' ) ) {
+	xdebug_set_filter(
+			XDEBUG_FILTER_CODE_COVERAGE,
+			XDEBUG_PATH_INCLUDE,
+			[ __DIR__ . "/../lib/" ]
+	);
+}
+
 // Temporarily silence deprecation errors. Remove once all deprecations have been resolved.
 set_error_handler( static fn( int $errno ) => $errno === E_DEPRECATED, E_DEPRECATED );
 
