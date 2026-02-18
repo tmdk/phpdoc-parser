@@ -1,10 +1,13 @@
 <?php
-
 /**
  * A parent test case class for the data export tests.
+ *
+ * @package WP_Parser\Tests
  */
 
 namespace WP_Parser\Tests;
+
+use function WP_Parser\parse_files;
 
 /**
  * Parent test case for data export tests.
@@ -14,21 +17,21 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * The exported data.
 	 *
-	 * @var string
+	 * @var array
 	 */
-	protected $export_data;
+	protected array $export_data = [];
 
 	/**
 	 * Parse the file for the current testcase.
 	 */
-	protected function parse_file() {
+	protected function parse_file(): void {
 
 		$class_reflector = new \ReflectionClass( $this );
-		$file = $class_reflector->getFileName();
-		$file = rtrim( $file, 'php' ) . 'inc';
-		$path = dirname( $file );
+		$file            = $class_reflector->getFileName();
+		$file            = rtrim( $file, 'ph' ) . 'inc';
+		$path            = dirname( $file );
 
-		$export_data = \WP_Parser\parse_files( array( $file ), $path );
+		$export_data = parse_files( [ $file ], $path );
 
 		$this->export_data = $export_data[0];
 	}
@@ -36,7 +39,7 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Parse the file to get the exported data before the first test.
 	 */
-	public function set_up() {
+	public function set_up(): void {
 
 		parent::set_up();
 
@@ -48,22 +51,18 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Assert that an entity contains another entity.
 	 *
-	 * @param array  $entity   The exported entity data.
-	 * @param string $type     The type of thing that this entity should contain.
+	 * @param array  $entity The exported entity data.
+	 * @param string $type The type of thing that this entity should contain.
 	 * @param array  $expected The expected data for the thing the entity should contain.
 	 */
-	protected function assertEntityContains( $entity, $type, $expected ) {
+	protected function assertEntityContains( array $entity, string $type, array $expected ): void {
 
 		$this->assertArrayHasKey( $type, $entity );
 
 		foreach ( $entity[ $type ] as $exported ) {
 			if ( $exported['line'] == $expected['line'] ) {
 				foreach ( $expected as $key => $expected_value ) {
-					if ( isset( $exported[ $key ] ) ) {
-						$exported_value = $exported[ $key ];
-					} else {
-						$exported_value = _wp_array_get( $exported, explode( '.', $key ), null );
-					}
+					$exported_value = $exported[ $key ] ?? _wp_array_get( $exported, explode( '.', $key ) );
 
 					$this->assertEquals( $expected_value, $exported_value );
 				}
@@ -72,7 +71,7 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 			}
 		}
 
-		$this->fail( "No matching {$type} contained by {$entity['name']}." );
+		$this->fail( "No matching $type contained by {$entity['name']}." );
 	}
 
 	/**
@@ -80,7 +79,7 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	 *
 	 * @param array $hook The expected export data for the hook.
 	 */
-	protected function assertFileContainsHook( $hook ) {
+	protected function assertFileContainsHook( array $hook ): void {
 
 		$this->assertEntityContains( $this->export_data, 'hooks', $hook );
 	}
@@ -89,16 +88,16 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	 * Assert that an entity uses another entity.
 	 *
 	 * @param array  $entity The exported entity data.
-	 * @param string $type   The type of thing that this entity should use.
-	 * @param array  $used   The expected data for the thing the entity should use.
+	 * @param string $type The type of thing that this entity should use.
+	 * @param array  $used The expected data for the thing the entity should use.
 	 */
-	protected function assertEntityUses( $entity, $type, $used ) {
+	protected function assertEntityUses( array $entity, string $type, array $used ): void {
 
 		if ( ! $this->entity_uses( $entity, $type, $used ) ) {
 
-			$name = isset( $entity['path'] ) ? $entity['path'] : $entity['name'];
+			$name = $entity['path'] ?? $entity['name'];
 
-			$this->fail( "No matching {$type} used by {$name}." );
+			$this->fail( "No matching $type used by $name." );
 		}
 	}
 
@@ -106,32 +105,32 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	 * Assert that an entity doesn't use another entity.
 	 *
 	 * @param array  $entity The exported entity data.
-	 * @param string $type   The type of thing that this entity shouldn't use.
-	 * @param array  $used   The expected data for the thing the entity shouldn't use.
+	 * @param string $type The type of thing that this entity shouldn't use.
+	 * @param array  $used The expected data for the thing the entity shouldn't use.
 	 */
-	protected function assertEntityNotUses( $entity, $type, $used ) {
+	protected function assertEntityNotUses( array $entity, string $type, array $used ): void {
 
 		if ( $this->entity_uses( $entity, $type, $used ) ) {
 
-			$name = isset( $entity['path'] ) ? $entity['path'] : $entity['name'];
+			$name = $entity['path'] ?? $entity['name'];
 
-			$this->fail( "Matching {$type} used by {$name}." );
+			$this->fail( "Matching $type used by $name." );
 		}
 	}
 
 	/**
 	 * Assert that a function uses another entity.
 	 *
-	 * @param string $type          The type of entity. E.g. 'functions', 'methods'.
+	 * @param string $type The type of entity. E.g. 'functions', 'methods'.
 	 * @param string $function_name The name of the function that uses this function.
-	 * @param array  $entity        The expected exported data for the used entity.
+	 * @param array  $entity The expected exported data for the used entity.
 	 */
-	protected function assertFunctionUses( $type, $function_name, $entity ) {
+	protected function assertFunctionUses( string $type, string $function_name, array $entity ): void {
 
 		$function_data = $this->find_entity_data_in(
-			$this->export_data
-			, 'functions'
-			, $function_name
+			$this->export_data,
+			'functions',
+			$function_name
 		);
 
 		$this->assertIsArray( $function_data );
@@ -141,16 +140,16 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Assert that a function doesn't use another entity.
 	 *
-	 * @param string $type          The type of entity. E.g. 'functions', 'methods'.
+	 * @param string $type The type of entity. E.g. 'functions', 'methods'.
 	 * @param string $function_name The name of the function that uses this function.
-	 * @param array  $entity        The expected exported data for the used entity.
+	 * @param array  $entity The expected exported data for the used entity.
 	 */
-	protected function assertFunctionNotUses( $type, $function_name, $entity ) {
+	protected function assertFunctionNotUses( string $type, string $function_name, array $entity ): void {
 
 		$function_data = $this->find_entity_data_in(
-			$this->export_data
-			, 'functions'
-			, $function_name
+			$this->export_data,
+			'functions',
+			$function_name
 		);
 
 		$this->assertIsArray( $function_data );
@@ -160,25 +159,25 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Assert that a method uses another entity.
 	 *
-	 * @param string $type        The type of entity. E.g. 'functions', 'methods'.
-	 * @param string $class_name  The name of the class that the method is used in.
+	 * @param string $type The type of entity. E.g. 'functions', 'methods'.
+	 * @param string $class_name The name of the class that the method is used in.
 	 * @param string $method_name The name of the method that uses this method.
-	 * @param array  $entity      The expected exported data for this entity.
+	 * @param array  $entity The expected exported data for this entity.
 	 */
-	protected function assertMethodUses( $type, $class_name, $method_name, $entity ) {
+	protected function assertMethodUses( string $type, string $class_name, string $method_name, array $entity ): void {
 
 		$class_data = $this->find_entity_data_in(
-			$this->export_data
-			, 'classes'
-			, $class_name
+			$this->export_data,
+			'classes',
+			$class_name
 		);
 
 		$this->assertIsArray( $class_data );
 
 		$method_data = $this->find_entity_data_in(
-			$class_data
-			, 'methods'
-			, $method_name
+			$class_data,
+			'methods',
+			$method_name
 		);
 
 		$this->assertIsArray( $method_data );
@@ -188,25 +187,25 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Assert that a method doesn't use another entity.
 	 *
-	 * @param string $type        The type of entity. E.g. 'functions', 'methods'.
-	 * @param string $class_name  The name of the class that the method is used in.
+	 * @param string $type The type of entity. E.g. 'functions', 'methods'.
+	 * @param string $class_name The name of the class that the method is used in.
 	 * @param string $method_name The name of the method that uses this method.
-	 * @param array  $entity      The expected exported data for this entity.
+	 * @param array  $entity The expected exported data for this entity.
 	 */
-	protected function assertMethodNotUses( $type, $class_name, $method_name, $entity ) {
+	protected function assertMethodNotUses( string $type, string $class_name, string $method_name, array $entity ): void {
 
 		$class_data = $this->find_entity_data_in(
-			$this->export_data
-			, 'classes'
-			, $class_name
+			$this->export_data,
+			'classes',
+			$class_name
 		);
 
 		$this->assertIsArray( $class_data );
 
 		$method_data = $this->find_entity_data_in(
-			$class_data
-			, 'methods'
-			, $method_name
+			$class_data,
+			'methods',
+			$method_name
 		);
 
 		$this->assertIsArray( $method_data );
@@ -218,7 +217,7 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	 *
 	 * @param array $function The expected export data for the function.
 	 */
-	protected function assertFileUsesFunction( $function ) {
+	protected function assertFileUsesFunction( array $function ): void {
 
 		$this->assertEntityUses( $this->export_data, 'functions', $function );
 	}
@@ -227,9 +226,9 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	 * Assert that a function uses another function.
 	 *
 	 * @param string $function_name The name of the function that uses this function.
-	 * @param array  $function      The expected exported data for the used function.
+	 * @param array  $function The expected exported data for the used function.
 	 */
-	protected function assertFunctionUsesFunction( $function_name, $function ) {
+	protected function assertFunctionUsesFunction( string $function_name, array $function ): void {
 
 		$this->assertFunctionUses( 'functions', $function_name, $function );
 	}
@@ -237,11 +236,11 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Assert that a method uses a function.
 	 *
-	 * @param string $class_name  The name of the class that the method is used in.
+	 * @param string $class_name The name of the class that the method is used in.
 	 * @param string $method_name The name of the method that uses this method.
-	 * @param array  $function    The expected exported data for this function.
+	 * @param array  $function The expected exported data for this function.
 	 */
-	protected function assertMethodUsesFunction( $class_name, $method_name, $function ) {
+	protected function assertMethodUsesFunction( string $class_name, string $method_name, array $function ): void {
 
 		$this->assertMethodUses( 'functions', $class_name, $method_name, $function );
 	}
@@ -251,7 +250,7 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	 *
 	 * @param array $function The expected export data for the function.
 	 */
-	protected function assertFileNotUsesFunction( $function ) {
+	protected function assertFileNotUsesFunction( array $function ): void {
 
 		$this->assertEntityNotUses( $this->export_data, 'functions', $function );
 	}
@@ -260,9 +259,9 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	 * Assert that a function uses another function.
 	 *
 	 * @param string $function_name The name of the function that uses this function.
-	 * @param array  $function      The expected exported data for the used function.
+	 * @param array  $function The expected exported data for the used function.
 	 */
-	protected function assertFunctionNotUsesFunction( $function_name, $function ) {
+	protected function assertFunctionNotUsesFunction( string $function_name, array $function ): void {
 
 		$this->assertFunctionNotUses( 'functions', $function_name, $function );
 	}
@@ -270,11 +269,11 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Assert that a method uses a function.
 	 *
-	 * @param string $class_name  The name of the class that the method is used in.
+	 * @param string $class_name The name of the class that the method is used in.
 	 * @param string $method_name The name of the method that uses this method.
-	 * @param array  $function    The expected exported data for this function.
+	 * @param array  $function The expected exported data for this function.
 	 */
-	protected function assertMethodNotUsesFunction( $class_name, $method_name, $function ) {
+	protected function assertMethodNotUsesFunction( string $class_name, string $method_name, array $function ): void {
 
 		$this->assertMethodNotUses( 'functions', $class_name, $method_name, $function );
 	}
@@ -284,7 +283,7 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	 *
 	 * @param array $method The expected export data for the method.
 	 */
-	protected function assertFileUsesMethod( $method ) {
+	protected function assertFileUsesMethod( array $method ): void {
 
 		$this->assertEntityUses( $this->export_data, 'methods', $method );
 	}
@@ -293,9 +292,9 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	 * Assert that a function uses a method.
 	 *
 	 * @param string $function_name The name of the function that uses this method.
-	 * @param array  $method        The expected exported data for this method.
+	 * @param array  $method The expected exported data for this method.
 	 */
-	protected function assertFunctionUsesMethod( $function_name, $method ) {
+	protected function assertFunctionUsesMethod( string $function_name, array $method ): void {
 
 		$this->assertFunctionUses( 'methods', $function_name, $method );
 	}
@@ -303,11 +302,11 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Assert that a method uses a method.
 	 *
-	 * @param string $class_name  The name of the class that the method is used in.
+	 * @param string $class_name The name of the class that the method is used in.
 	 * @param string $method_name The name of the method that uses this method.
-	 * @param array  $method      The expected exported data for this method.
+	 * @param array  $method The expected exported data for this method.
 	 */
-	protected function assertMethodUsesMethod( $class_name, $method_name, $method ) {
+	protected function assertMethodUsesMethod( string $class_name, string $method_name, array $method ): void {
 
 		$this->assertMethodUses( 'methods', $class_name, $method_name, $method );
 	}
@@ -317,7 +316,7 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	 *
 	 * @param array $method The expected export data for the method.
 	 */
-	protected function assertFileNotUsesMethod( $method ) {
+	protected function assertFileNotUsesMethod( array $method ): void {
 
 		$this->assertEntityNotUses( $this->export_data, 'methods', $method );
 	}
@@ -326,9 +325,9 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	 * Assert that a function uses a method.
 	 *
 	 * @param string $function_name The name of the function that uses this method.
-	 * @param array  $method        The expected exported data for this method.
+	 * @param array  $method The expected exported data for this method.
 	 */
-	protected function assertFunctionNotUsesMethod( $function_name, $method ) {
+	protected function assertFunctionNotUsesMethod( string $function_name, array $method ): void {
 
 		$this->assertFunctionNotUses( 'methods', $function_name, $method );
 	}
@@ -336,11 +335,11 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Assert that a method uses a method.
 	 *
-	 * @param string $class_name  The name of the class that the method is used in.
+	 * @param string $class_name The name of the class that the method is used in.
 	 * @param string $method_name The name of the method that uses this method.
-	 * @param array  $method      The expected exported data for this method.
+	 * @param array  $method The expected exported data for this method.
 	 */
-	protected function assertMethodNotUsesMethod( $class_name, $method_name, $method ) {
+	protected function assertMethodNotUsesMethod( string $class_name, string $method_name, array $method ): void {
 
 		$this->assertMethodNotUses( 'methods', $class_name, $method_name, $method );
 	}
@@ -348,11 +347,11 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Assert that an entity has a docblock.
 	 *
-	 * @param array  $entity  The exported entity data.
-	 * @param array  $docs    The expected data for the entity's docblock.
+	 * @param array  $entity The exported entity data.
+	 * @param array  $docs The expected data for the entity's docblock.
 	 * @param string $doc_key The key in the entity array that should hold the docs.
 	 */
-	protected function assertEntityHasDocs( $entity, $docs, $doc_key = 'doc' ) {
+	protected function assertEntityHasDocs( array $entity, array $docs, string $doc_key = 'doc' ): void {
 
 		$this->assertArrayHasKey( $doc_key, $entity );
 
@@ -366,7 +365,7 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	 *
 	 * @param array $docs The expected data for the file's docblock.
 	 */
-	protected function assertFileHasDocs( $docs ) {
+	protected function assertFileHasDocs( array $docs ): void {
 
 		$this->assertEntityHasDocs( $this->export_data, $docs, 'file' );
 	}
@@ -374,10 +373,10 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Assert that a function has a docblock.
 	 *
-	 * @param array $func The function name.
-	 * @param array $docs The expected data for the function's docblock.
+	 * @param string $func The function name.
+	 * @param array  $docs The expected data for the function's docblock.
 	 */
-	protected function assertFunctionHasDocs( $func, $docs ) {
+	protected function assertFunctionHasDocs( string $func, array $docs ): void {
 
 		$func = $this->find_entity_data_in( $this->export_data, 'functions', $func );
 		$this->assertEntityHasDocs( $func, $docs );
@@ -386,10 +385,10 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Assert that a class has a docblock.
 	 *
-	 * @param array $class The class name.
-	 * @param array $docs  The expected data for the class's docblock.
+	 * @param string $class The class name.
+	 * @param array  $docs The expected data for the class's docblock.
 	 */
-	protected function assertClassHasDocs( $class, $docs ) {
+	protected function assertClassHasDocs( string $class, array $docs ): void {
 
 		$class = $this->find_entity_data_in( $this->export_data, 'classes', $class );
 		$this->assertEntityHasDocs( $class, $docs );
@@ -398,11 +397,11 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Assert that a method has a docblock.
 	 *
-	 * @param string $class  The name of the class that the method is used in.
+	 * @param string $class The name of the class that the method is used in.
 	 * @param string $method The method name.
-	 * @param array  $docs   The expected data for the method's docblock.
+	 * @param array  $docs The expected data for the method's docblock.
 	 */
-	protected function assertMethodHasDocs( $class, $method, $docs ) {
+	protected function assertMethodHasDocs( string $class, string $method, array $docs ): void {
 
 		$class = $this->find_entity_data_in( $this->export_data, 'classes', $class );
 		$this->assertIsArray( $class );
@@ -414,11 +413,11 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Assert that a property has a docblock.
 	 *
-	 * @param string $class    The name of the class that the method is used in.
+	 * @param string $class The name of the class that the method is used in.
 	 * @param string $property The property name.
-	 * @param array  $docs     The expected data for the property's docblock.
+	 * @param array  $docs The expected data for the property's docblock.
 	 */
-	protected function assertPropertyHasDocs( $class, $property, $docs ) {
+	protected function assertPropertyHasDocs( string $class, string $property, array $docs ): void {
 
 		$class = $this->find_entity_data_in( $this->export_data, 'classes', $class );
 		$this->assertIsArray( $class );
@@ -430,10 +429,10 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Assert that a hook has a docblock.
 	 *
-	 * @param array $hook The hook name.
-	 * @param array $docs The expected data for the hook's docblock.
+	 * @param string $hook The hook name.
+	 * @param array  $docs The expected data for the hook's docblock.
 	 */
-	protected function assertHookHasDocs( $hook, $docs ) {
+	protected function assertHookHasDocs( string $hook, array $docs ): void {
 
 		$hook = $this->find_entity_data_in( $this->export_data, 'hooks', $hook );
 		$this->assertEntityHasDocs( $hook, $docs );
@@ -442,13 +441,13 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	/**
 	 * Find the exported data for an entity.
 	 *
-	 * @param array  $data        The data to search in.
-	 * @param string $type        The type of entity.
-	 * @param string $entity_name The name of the function.
+	 * @param array  $data The data to search in.
+	 * @param string $type The type of entity.
+	 * @param        $entity
 	 *
 	 * @return array|false The data for the entity, or false if it couldn't be found.
 	 */
-	protected function find_entity_data_in( $data, $type, $entity ) {
+	protected function find_entity_data_in( array $data, string $type, $entity ): bool|array {
 
 		if ( empty( $data[ $type ] ) ) {
 			return false;
@@ -467,12 +466,12 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	 * Check if one entity uses another entity.
 	 *
 	 * @param array  $entity The exported entity data.
-	 * @param string $type   The type of thing that this entity should use.
-	 * @param array  $used   The expected data for the thing the entity should use.
+	 * @param string $type The type of thing that this entity should use.
+	 * @param array  $used The expected data for the thing the entity should use.
 	 *
 	 * @return bool Whether the entity uses the other.
 	 */
-	function entity_uses( $entity, $type, $used ) {
+	function entity_uses( array $entity, string $type, array $used ): bool {
 
 		if ( ! isset( $entity['uses'][ $type ] ) ) {
 			return false;
@@ -481,6 +480,7 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 		foreach ( $entity['uses'][ $type ] as $exported_used ) {
 			if ( $exported_used['line'] == $used['line'] ) {
 				$this->assertEquals( $used, $exported_used );
+
 				return true;
 			}
 		}
