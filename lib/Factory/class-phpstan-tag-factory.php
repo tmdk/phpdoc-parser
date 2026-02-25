@@ -14,6 +14,7 @@ use phpDocumentor\Reflection\DocBlock\Tags\InvalidTag;
 use phpDocumentor\Reflection\Types\Context as TypeContext;
 use PHPStan\PhpDocParser\Lexer\Lexer;
 use PHPStan\PhpDocParser\Parser\ConstExprParser;
+use PHPStan\PhpDocParser\Parser\ParserException;
 use PHPStan\PhpDocParser\Parser\PhpDocParser;
 use PHPStan\PhpDocParser\Parser\TokenIterator;
 use PHPStan\PhpDocParser\Parser\TypeParser;
@@ -42,7 +43,7 @@ class PHPStan_Tag_Factory extends AbstractPHPStanFactory {
 		// Re-initialize parser and lexer since parent's fields are private.
 		$config       = new ParserConfig( [ 'indexes' => true, 'lines' => true ] );
 		$this->lexer  = new Lexer( $config );
-		$const_parser  = new ConstExprParser( $config );
+		$const_parser = new ConstExprParser( $config );
 		$this->parser = new PhpDocParser(
 			$config,
 			new TypeParser( $config, $const_parser ),
@@ -53,49 +54,17 @@ class PHPStan_Tag_Factory extends AbstractPHPStanFactory {
 	}
 
 	public function create( string $tagLine, ?TypeContext $context = null ): Tag {
-		// Prefix continuation lines with '*' so the lexer consumes it as part of TOKEN_PHPDOC_EOL.
-		$tagLine = str_replace( "\n", "\n*", $tagLine );
-
-		// Escape double quotes to prevent greedy matching of TOKEN_DOCTRINE_ANNOTATION_STRING
-		// (everthing between quotes, including newlines).
-		$tagLine = str_replace( '"', self::DQUOTE_ESCAPE, $tagLine );
-
-		$tokens = $this->lexer->tokenize( $tagLine . "\n" );
-
-		// Restore double quotes.
-		foreach ( $tokens as &$token ) {
-			if ( ! str_contains( $token[ Lexer::VALUE_OFFSET ], self::DQUOTE_ESCAPE ) ) {
-				continue;
+		try {
+			$tokens = $this->tokenize_line( $tagLine );
+			$ast    = $this->parser->parseTag( $tokens );
+			if ( property_exists( $ast->value, 'description' ) === true ) {
+				$ast->value->setAttribute(
+					'description',
+					rtrim( $ast->value->description . $tokens->joinUntil( Lexer::TOKEN_END ), "\n" )
+				);
 			}
-
-			$token[ Lexer::VALUE_OFFSET ] = str_replace(
-				self::DQUOTE_ESCAPE,
-				'"',
-				$token[ Lexer::VALUE_OFFSET ]
-			);
-		}
-
-		unset( $token );
-
-		$token_iterator = new TokenIterator( $tokens );
-		$ast           = $this->parser->parseTag( $token_iterator );
-
-		if ( property_exists( $ast->value, 'description' ) ) {
-			$description = $ast->value->description;
-
-			// The phpstan parser stops when it sees another tag, so we simply append the rest of
-			// the tokens. This ensures compatibility with the WordPress array shape doc format.
-			$tokens_after_description = array_slice( $tokens, $token_iterator->currentTokenIndex() );
-
-			foreach ( $tokens_after_description as $token ) {
-				if ( $token[ Lexer::TYPE_OFFSET ] === Lexer::TOKEN_PHPDOC_EOL ) {
-					$description .= "\n";
-					continue;
-				}
-				$description .= $token[ Lexer::VALUE_OFFSET ];
-			}
-
-			$ast->value->setAttribute( 'description', rtrim( $description, "\n" ) );
+		} catch ( ParserException $e ) {
+			return InvalidTag::create( $tagLine, '' )->withError( $e );
 		}
 
 		if ( $context === null ) {
@@ -113,5 +82,44 @@ class PHPStan_Tag_Factory extends AbstractPHPStanFactory {
 		}
 
 		return InvalidTag::create( (string) $ast->value, ltrim( $ast->name, '@' ) );
+	}
+
+	private function tokenize_line( string $tag_line ): TokenIterator {
+		// 1. Prefix continuation lines with '* ' so the lexer consumes it as part of TOKEN_PHPDOC_EOL.
+		// 2. Escape double quotes to prevent greedy matching of TOKEN_DOCTRINE_ANNOTATION_STRING
+		//    (everthing between quotes, including newlines).
+		$tag_line = str_replace(
+			[ "\n", '"' ],
+			[ "\n* ", self::DQUOTE_ESCAPE ],
+			$tag_line
+		);
+
+		$tag_line = str_replace( '"', self::DQUOTE_ESCAPE, $tag_line );
+
+		$tokens = $this->lexer->tokenize( $tag_line . "\n" );
+		$fixed  = [];
+
+		foreach ( $tokens as $token ) {
+			$token_value = $token[ Lexer::VALUE_OFFSET ];
+
+			// Remove prefix and horizontal whitespace from EOL tokens so they
+			// don't end up in the description.
+			if ( $token[ Lexer::TYPE_OFFSET ] === Lexer::TOKEN_PHPDOC_EOL ) {
+				$token[ Lexer::VALUE_OFFSET ] = trim( $token_value, " \t*" );
+			}
+
+			// Restore escaped double quotes.
+			if ( str_contains( $token_value, self::DQUOTE_ESCAPE ) ) {
+				$token[ Lexer::VALUE_OFFSET ] = str_replace(
+					self::DQUOTE_ESCAPE,
+					'"',
+					$token_value
+				);
+			}
+
+			$fixed[] = $token;
+		}
+
+		return new TokenIterator( $fixed );
 	}
 }
