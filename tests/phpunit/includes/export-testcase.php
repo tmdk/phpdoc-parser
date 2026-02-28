@@ -7,6 +7,11 @@
 
 namespace WP_Parser\Tests;
 
+use WP_Parser\Parser;
+
+use WP_Parser\Serializer\Serializer;
+use WP_Parser\Source_File;
+
 use function WP_Parser\parse_files;
 
 /**
@@ -20,28 +25,53 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	 * @var array
 	 */
 	protected array $export_data = [];
+	/**
+	 * Parser.
+	 *
+	 * @var Parser
+	 */
+	private Parser $parser;
+	/**
+	 * Serializer.
+	 *
+	 * @var Serializer
+	 */
+	private Serializer $serializer;
 
 	/**
 	 * Parse the file for the current testcase.
 	 */
 	protected function parse_file(): void {
-
 		$class_reflector = new \ReflectionClass( $this );
 		$file            = $class_reflector->getFileName();
 		$file            = rtrim( $file, 'ph' ) . 'inc';
-		$path            = dirname( $file );
+		if ( ! file_exists( $file ) ) {
+			return;
+		}
+		$path = dirname( $file );
 
 		$export_data = parse_files( [ $file ], $path );
 
 		$this->export_data = $export_data[0];
 	}
 
+	protected function parse_string( string $php ) {
+		$caller = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 2 )[1]['function'];
+		if ( ! str_starts_with( $php, '<?php' ) ) {
+			$php = '<?php ' . $php;
+		}
+		$source_file = Source_File::from_string( "$caller.php", $php );
+
+		return $this->serializer->serialize( $this->parser->parse_file( $source_file ) );
+	}
+
 	/**
 	 * Parse the file to get the exported data before the first test.
 	 */
 	public function set_up(): void {
-
 		parent::set_up();
+		$this->parser = new Parser();
+		$this->serializer = new Serializer();
 
 		if ( ! $this->export_data ) {
 			$this->parse_file();
@@ -71,7 +101,22 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 			}
 		}
 
-		$this->fail( "No matching $type contained by {$entity['name']}." );
+		$entity_key = $entity['name'] ?? $entity['path'];
+
+		$this->fail( "No matching $type contained by $entity_key." );
+	}
+
+	protected function assertArrayPathEquals( array $array, string $path, $expected ): void {
+		$keys  = explode( '.', $path );
+		$value = &$array;
+		foreach ( $keys as $key ) {
+			if ( ! isset( $value[ $key ] ) ) {
+				$this->fail( "Array does not contain path $path" );
+			}
+			$value = &$value[ $key ];
+		}
+
+		$this->assertEquals( $expected, $value );
 	}
 
 	/**
