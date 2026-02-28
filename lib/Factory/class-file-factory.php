@@ -10,6 +10,7 @@ namespace WP_Parser\Factory;
 use PhpParser\Comment\Doc;
 use PhpParser\Node\Stmt\{Class_, Const_, Declare_, Function_, InlineHTML, Interface_, Trait_};
 use WP_Parser\Reflection\File;
+use WP_Parser\Source_File;
 
 /**
  * Factory for creating File objects from php-parser AST.
@@ -22,16 +23,15 @@ class File_Factory {
 	/**
 	 * Create a File from an AST.
 	 *
-	 * @param array  $nodes The php-parser AST.
-	 * @param string $filename The filename relative to root.
-	 * @param string $root_dir The root directory.
+	 * @param array       $nodes The php-parser AST.
+	 * @param Source_File $source_file Source file.
 	 *
 	 * @return File
 	 */
-	public function create( array $nodes, string $filename, string $root_dir ): File {
+	public function create( array $nodes, Source_File $source_file ): File {
 		$file = new File();
-		$file->set_path( $filename );
-		$file->set_root( $root_dir );
+		$file->set_path( $source_file->get_filename() );
+		$file->set_root( $source_file->get_base_dir() );
 
 		$doc_comment = $this->get_file_doc_comment( $nodes );
 

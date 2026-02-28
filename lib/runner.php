@@ -39,13 +39,14 @@ function get_wp_files( string $directory ): \WP_Error|array {
  * @return array
  */
 function parse_files( array $files, string $root ): array {
-	$parser     = new Parser( $root );
+	$parser     = new Parser();
 	$serializer = new Serializer\Serializer();
 	$output     = [];
 
 	foreach ( $files as $filename ) {
-		$filename = ltrim( substr( $filename, strlen( $root ) ), DIRECTORY_SEPARATOR );
-		$output[] = $serializer->serialize( $parser->parse_file( $filename ) );
+		$filename    = ltrim( substr( $filename, strlen( $root ) ), DIRECTORY_SEPARATOR );
+		$source_file = Source_File::from_file( $filename, $root );
+		$output[]    = $serializer->serialize( $parser->parse_file( $source_file ) );
 	}
 
 	return $output;

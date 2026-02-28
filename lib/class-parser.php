@@ -24,10 +24,10 @@ use WP_Parser\Factory\Method_Factory;
 use WP_Parser\Factory\Param_Factory;
 use WP_Parser\Factory\Property_Factory;
 use WP_Parser\Reflection\File;
-use WP_Parser\Visitors\Docblock_Codeblock_Visitor;
 use WP_Parser\Visitors\Class_Visitor;
 use WP_Parser\Visitors\Comment_Stripping_Visitor;
 use WP_Parser\Visitors\Constant_Visitor;
+use WP_Parser\Visitors\Docblock_Codeblock_Visitor;
 use WP_Parser\Visitors\Function_Visitor;
 use WP_Parser\Visitors\Hook_Visitor;
 use WP_Parser\Visitors\Include_Visitor;
@@ -42,9 +42,6 @@ use WP_Parser\Visitors\Uses_Visitor;
  */
 class Parser {
 
-	private string $root_dir;
-	private array $files = [];
-
 	private Docblock_Factory $docblock_factory;
 	private File_Factory $file_factory;
 	private Class_Factory $class_factory;
@@ -58,10 +55,8 @@ class Parser {
 	private Hook_Factory $hook_factory;
 	private \PhpParser\Parser $parser;
 
-	public function __construct( string $root_dir ) {
+	public function __construct() {
 		$this->parser = ( new ParserFactory() )->createForNewestSupportedVersion();
-
-		$this->root_dir = $root_dir;
 
 		// Initialize factories
 		$this->docblock_factory = new Docblock_Factory( new Docblock_Tag_Factory() );
@@ -79,42 +74,14 @@ class Parser {
 		$this->hook_factory          = new Hook_Factory();
 	}
 
-	/**
-	 * Add a file to parse.
-	 *
-	 * @param string $filename The filename relative to root_dir.
-	 *
-	 * @return void
-	 */
-	public function add_file( string $filename ): void {
-		$this->files[] = $filename;
-	}
-
-	/**
-	 * Parse all added files.
-	 *
-	 * @return File[]
-	 */
-	public function parse(): array {
-		$files  = [];
-
-		foreach ( $this->files as $filename ) {
-			$files[] = $this->parse_file( $filename );
-		}
-
-		return $files;
-	}
-
-	public function parse_file( string $filename ): ?File {
-		$path  = rtrim( $this->root_dir, '/' ) . '/' . ltrim( $filename, '/' );
-		$code  = file_get_contents( $path );
-		$nodes = $this->parser->parse( $code );
+	public function parse_file( Source_File $source_file ): ?File {
+		$nodes = $this->parser->parse( $source_file->get_source() );
 
 		if ( $nodes === null ) {
 			return null;
 		}
 
-		$file = $this->file_factory->create( $nodes, $filename, '/' . basename( $this->root_dir ) );
+		$file = $this->file_factory->create( $nodes, $source_file );
 
 		$scope = new Scope();
 		$scope->push( $file );

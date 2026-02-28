@@ -8,6 +8,7 @@
 namespace WP_Parser\Tests;
 
 use PHPUnit\Framework\TestCase;
+use WP_Parser\Source_File;
 
 /**
  * Base class for regression tests
@@ -78,13 +79,15 @@ abstract class Regression_TestCase extends TestCase {
 			return self::$parsed_files[ $source_file ];
 		}
 
-		$parser = new \WP_Parser\Parser( self::WORDPRESS_DIR );
-		$parser->add_file( $source_file );
-		$files = $parser->parse();
+		$parser = new \WP_Parser\Parser();
+		$filename = self::WORDPRESS_DIR . '/' . $source_file;
+		$file = $parser->parse_file(
+			Source_File::from_string( $source_file, file_get_contents( $filename ), '/wordpress')
+		);
 
 		$serializer = new \WP_Parser\Serializer\Serializer();
 
-		self::$parsed_files[ $source_file ] = $serializer->serialize( $files[0] );
+		self::$parsed_files[ $source_file ] = $serializer->serialize( $file );
 
 		return self::$parsed_files[ $source_file ];
 	}
