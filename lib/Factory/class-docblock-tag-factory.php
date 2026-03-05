@@ -128,7 +128,7 @@ class Docblock_Tag_Factory {
 			return '';
 		}
 
-		return $this->description_formatter->format( $description );
+		return trim( $this->description_formatter->format( $description ) );
 	}
 
 	private function from_invalid_since_tag( InvalidTag $tag ): Docblock_Tag {
