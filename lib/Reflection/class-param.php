@@ -9,6 +9,7 @@ namespace WP_Parser\Reflection;
 
 use WP_Parser\Attributes\Serialize_Null;
 use WP_Parser\Attributes\Serialized_Name;
+use WP_Parser\Formatter\Templated_String;
 
 /**
  * Represents a function or method parameter.
@@ -19,10 +20,10 @@ class Param {
 
 	#[Serialized_Name( 'default' )]
 	#[Serialize_Null]
-	private ?string $default = null;
+	private string|Templated_String|null $default = null;
 
 	#[Serialized_Name( 'type' )]
-	private string $type = '';
+	private string|Templated_String $type = '';
 
 	/**
 	 * Set the parameter name.
@@ -38,22 +39,22 @@ class Param {
 	/**
 	 * Set the parameter type.
 	 *
-	 * @param string $type
+	 * @param string|Templated_String $type
 	 *
 	 * @return void
 	 */
-	public function set_type( string $type ): void {
+	public function set_type( string|Templated_String $type ): void {
 		$this->type = $type;
 	}
 
 	/**
 	 * Set the default value.
 	 *
-	 * @param string $default
+	 * @param string|Templated_String $default
 	 *
 	 * @return void
 	 */
-	public function set_default( string $default ): void {
+	public function set_default( string|Templated_String $default ): void {
 		$this->default = $default;
 	}
 }

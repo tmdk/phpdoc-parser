@@ -27,9 +27,12 @@ class Inline_Tag_Formatter implements Formatter {
 	private function format_tag_body( Tag $tag ): string {
 		if ( $tag instanceof See || $tag instanceof InvalidTag && $tag->getName() === 'see' ) {
 			$reference = (string) $tag;
-			if ( str_starts_with( $reference, '\\' ) && ! str_contains( substr( $reference, 1 ), '\\' ) ) {
+			if ( str_starts_with( $reference, '\\' ) &&
+				! str_contains( substr( $reference, 1 ), '\\' ) &&
+				str_contains( $reference, '()' ) ) {
 				return ltrim( $reference, '\\' );
 			}
+
 			return $reference;
 		}
 

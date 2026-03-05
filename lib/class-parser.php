@@ -88,7 +88,7 @@ class Parser {
 
 		$this->docblock_factory->set_scope( $scope );
 
-		$name_resolver        = new NameResolver();
+		$name_resolver        = new NameResolver( null, [ 'preserveOriginalNames' => true ] );
 		$comment_stripper     = new Comment_Stripping_Visitor();
 		$codeblock_visitor    = new Docblock_Codeblock_Visitor();
 		$name_context_visitor = new Name_Context_Visitor();

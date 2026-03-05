@@ -17,6 +17,7 @@ class Serializer implements Serializer_Interface {
 	public function __construct() {
 		$object_serializer = new Object_Serializer( $this );
 
+		$this->serializers[] = new Templated_String_Serializer();
 		$this->serializers[] = new Type_Serializer();
 		$this->serializers[] = new Docblock_Tag_Serializer( $object_serializer );
 		$this->serializers[] = new Method_Serializer( $object_serializer );

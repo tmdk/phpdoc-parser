@@ -9,6 +9,7 @@ namespace WP_Parser\Factory;
 
 use PhpParser\Node;
 use WP_Parser\Formatter\Pretty_Printer;
+use WP_Parser\Formatter\Templated_String_Printer;
 use WP_Parser\Reflection\Param;
 
 /**
@@ -16,10 +17,12 @@ use WP_Parser\Reflection\Param;
  */
 class Param_Factory {
 
+	private Templated_String_Printer $templated_printer;
 	private Pretty_Printer $pretty_printer;
 
 	public function __construct() {
-		$this->pretty_printer = new Pretty_Printer();
+		$this->templated_printer = new Templated_String_Printer();
+		$this->pretty_printer    = new Pretty_Printer( use_fully_qualified_names: false );
 	}
 
 	/**
@@ -35,25 +38,15 @@ class Param_Factory {
 
 		// Set type if present
 		if ( $node->type !== null ) {
-			$param->set_type( $this->pretty_printer->prettyPrint( [ $node->type ] ) );
+			$param->set_type( $this->templated_printer->print_node( $node->type ) );
 		}
 
 		// Set default value if present
 		if ( $node->default !== null ) {
-			$param->set_default( $this->get_default_value( $node->default ) );
+			$param->set_default( $this->pretty_printer->prettyPrintExpr( $node->default ) );
 		}
 
 		return $param;
 	}
 
-	/**
-	 * Get the default value of a parameter.
-	 *
-	 * @param Node\Expr $expr
-	 *
-	 * @return string
-	 */
-	private function get_default_value( Node\Expr $expr ): string {
-		return $this->pretty_printer->prettyPrintExpr( $expr );
-	}
 }

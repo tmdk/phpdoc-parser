@@ -182,7 +182,7 @@ class Docblock_Tag_Factory {
 		$doc_tag = new Docblock_Tag();
 
 		$doc_tag->set_content( $this->get_description( $tag ) );
-		$doc_tag->set_reference( $this->normalize_reference( $tag->getReference() ) );
+		$doc_tag->set_reference( $tag->getReference() );
 
 		return $doc_tag;
 	}
@@ -199,7 +199,7 @@ class Docblock_Tag_Factory {
 		$doc_tag = new Docblock_Tag();
 
 		$doc_tag->set_content( $this->get_description( $tag ) );
-		$doc_tag->set_reference( $this->normalize_reference( (string) $tag->getReference() ) );
+		$doc_tag->set_reference( $tag->getReference() );
 
 		return $doc_tag;
 	}
@@ -242,14 +242,6 @@ class Docblock_Tag_Factory {
 		$doc_tag->set_content( $this->description_formatter->format( $description ) );
 
 		return $doc_tag;
-	}
-
-	private function normalize_reference( string $reference ): string {
-		if ( str_starts_with( $reference, '\\' ) && ! str_contains( substr( $reference, 1 ), '\\' ) ) {
-			return ltrim( $reference, '\\' );
-		}
-
-		return $reference;
 	}
 
 	private function from_template_tag( Template $tag ): Docblock_Tag {

@@ -66,7 +66,7 @@ class Legacy_See_Tag extends BaseTag {
 			$description = '';
 		}
 
-		$refers = (string) $this->refers;
+		$refers = $this->refers;
 
 		return $refers . ( $description !== '' ? ( $refers !== '' ? ' ' : '' ) . $description : '' );
 	}

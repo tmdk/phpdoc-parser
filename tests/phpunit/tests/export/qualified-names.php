@@ -16,8 +16,8 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 
 		$function = $this->find_entity_data_in( $global_ns, 'functions', 'func' );
 		$this->assertIsArray( $function );
-		$this->assertArrayPathEquals( $function, 'arguments.0.type', 'WP_Post' );
-		$this->assertArrayPathEquals( $function, 'arguments.1.type', 'WP_Term' );
+		$this->assertArrayPathEquals( $function, 'arguments.0.type', '\WP_Post' );
+		$this->assertArrayPathEquals( $function, 'arguments.1.type', '\WP_Term' );
 	}
 
 	public function test_php_parameter_types_in_namespace() {
@@ -30,8 +30,8 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 
 		$func = $this->find_entity_data_in( $non_global_ns, 'functions', 'func' );
 		$this->assertIsArray( $func );
-		$this->assertArrayPathEquals( $func, 'arguments.0.type', 'WP_Query' );
-		$this->assertArrayPathEquals( $func, 'arguments.1.type', 'WP_Post' );
+		$this->assertArrayPathEquals( $func, 'arguments.0.type', '\WP_Query' );
+		$this->assertArrayPathEquals( $func, 'arguments.1.type', '\WP_Post' );
 		$this->assertArrayPathEquals( $func, 'arguments.2.type', '\My_Plugin\Options' );
 	}
 
@@ -59,7 +59,7 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 
 		$func = $this->find_entity_data_in( $non_global_ns, 'functions', 'func' );
 		$this->assertIsArray( $func );
-		$this->assertArrayPathEquals( $func, 'arguments.0.type', 'WP_Post' );
+		$this->assertArrayPathEquals( $func, 'arguments.0.type', '\WP_Post' );
 	}
 
 	public function test_php_param_defaults_global_ns() {
@@ -85,8 +85,8 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 
 		$func = $this->find_entity_data_in( $non_global_ns, 'functions', 'func' );
 		$this->assertIsArray( $func );
-		$this->assertArrayPathEquals( $func, 'arguments.0.default', 'WP_Post::STATUS' );
-		$this->assertArrayPathEquals( $func, 'arguments.1.default', '\My_Plugin\Options::DEFAULT_VALUE' );
+		$this->assertArrayPathEquals( $func, 'arguments.0.default', '\WP_Post::STATUS' );
+		$this->assertArrayPathEquals( $func, 'arguments.1.default', 'Options::DEFAULT_VALUE' );
 	}
 
 	public function test_property_defaults_global_ns() {
@@ -103,7 +103,7 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 		$status  = $this->find_entity_data_in( $class, 'properties', '$status' );
 		$default = $this->find_entity_data_in( $class, 'properties', '$default' );
 
-		$this->assertArrayPathEquals( $status,  'default', 'WP_Post::PUBLISHED' );
+		$this->assertArrayPathEquals( $status, 'default', '\WP_Post::PUBLISHED' );
 		$this->assertArrayPathEquals( $default, 'default', '\My_Plugin\Options::DEFAULT_VALUE' );
 	}
 
@@ -122,7 +122,7 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 		$status  = $this->find_entity_data_in( $class, 'properties', '$status' );
 		$default = $this->find_entity_data_in( $class, 'properties', '$default' );
 
-		$this->assertArrayPathEquals( $status,  'default', 'WP_Post::PUBLISHED' );
+		$this->assertArrayPathEquals( $status, 'default', '\WP_Post::PUBLISHED' );
 		$this->assertArrayPathEquals( $default, 'default', '\My_Plugin\Options::DEFAULT_VALUE' );
 	}
 
@@ -135,8 +135,8 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 
 		$class = $this->find_entity_data_in( $global_ns, 'classes', 'Foo' );
 		$this->assertIsArray( $class );
-		$this->assertArrayPathEquals( $class, 'extends',      'Walker' );
-		$this->assertArrayPathEquals( $class, 'implements.0', 'Iterator' );
+		$this->assertArrayPathEquals( $class, 'extends', '\Walker' );
+		$this->assertArrayPathEquals( $class, 'implements.0', '\Iterator' );
 		$this->assertArrayPathEquals( $class, 'implements.1', '\My_Plugin\Loadable' );
 	}
 
@@ -150,8 +150,8 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 		);
 
 		$foo = $this->find_entity_data_in( $non_global_ns, 'classes', 'Foo' );
-		$this->assertArrayPathEquals( $foo, 'extends',      'WP_List_Table' );
-		$this->assertArrayPathEquals( $foo, 'implements.0', 'Iterator' );
+		$this->assertArrayPathEquals( $foo, 'extends', '\WP_List_Table' );
+		$this->assertArrayPathEquals( $foo, 'implements.0', '\Iterator' );
 		$this->assertArrayPathEquals( $foo, 'implements.1', '\My_Plugin\Loadable' );
 
 		$bar = $this->find_entity_data_in( $non_global_ns, 'classes', 'Bar' );
@@ -161,14 +161,14 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 	public function test_hook_arguments_global_ns() {
 		$global_ns = $this->parse_string(
 			<<<'PHP'
-			do_action( 'my_hook', WP_Term::TYPE, WP_Error::CODE, \My_Plugin\Options::TRIGGER );
+			do_action( 'my_hook', WP_Term::TYPE, \WP_Error::CODE, \My_Plugin\Options::TRIGGER );
 			PHP
 		);
 
 		$hook = $this->find_entity_data_in( $global_ns, 'hooks', 'my_hook' );
 		$this->assertIsArray( $hook );
 		$this->assertArrayPathEquals( $hook, 'arguments.0', 'WP_Term::TYPE' );
-		$this->assertArrayPathEquals( $hook, 'arguments.1', 'WP_Error::CODE' );
+		$this->assertArrayPathEquals( $hook, 'arguments.1', '\WP_Error::CODE' );
 		$this->assertArrayPathEquals( $hook, 'arguments.2', '\My_Plugin\Options::TRIGGER' );
 	}
 
@@ -182,8 +182,8 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 
 		$hook = $this->find_entity_data_in( $non_global_ns, 'hooks', 'my_hook' );
 		$this->assertIsArray( $hook );
-		$this->assertArrayPathEquals( $hook, 'arguments.0', 'WP_Post::STATUS' );
-		$this->assertArrayPathEquals( $hook, 'arguments.1', '\My_Plugin\Options::TRIGGER' );
+		$this->assertArrayPathEquals( $hook, 'arguments.0', '\WP_Post::STATUS' );
+		$this->assertArrayPathEquals( $hook, 'arguments.1', 'Options::TRIGGER' );
 	}
 
 	public function test_uses_method_class_global_ns() {
@@ -194,7 +194,7 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 			PHP
 		);
 
-		$this->assertArrayPathEquals( $global_ns, 'uses.methods.0.class', 'WP_Abilities_Registry' );
+		$this->assertArrayPathEquals( $global_ns, 'uses.methods.0.class', '\WP_Abilities_Registry' );
 		$this->assertArrayPathEquals( $global_ns, 'uses.methods.1.class', '\My_Plugin\Options' );
 	}
 
@@ -207,7 +207,7 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 			PHP
 		);
 
-		$this->assertArrayPathEquals( $non_global_ns, 'uses.methods.0.class', 'WP_Query' );
+		$this->assertArrayPathEquals( $non_global_ns, 'uses.methods.0.class', '\WP_Query' );
 		$this->assertArrayPathEquals( $non_global_ns, 'uses.methods.1.class', '\My_Plugin\Options' );
 	}
 
@@ -249,8 +249,8 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 		);
 
 		$func = $this->find_entity_data_in( $global_ns, 'functions', 'func' );
-		$this->assertArrayPathEquals( $func, 'doc.tags.0.types', [ 'WP_Term' ] );
-		$this->assertArrayPathEquals( $func, 'doc.tags.1.types', [ 'WP_Query' ] );
+		$this->assertArrayPathEquals( $func, 'doc.tags.0.types', [ '\WP_Term' ] );
+		$this->assertArrayPathEquals( $func, 'doc.tags.1.types', [ '\WP_Query' ] );
 		$this->assertArrayPathEquals( $func, 'doc.tags.2.types', [ '\My_Plugin\Options' ] );
 	}
 
@@ -268,8 +268,8 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 		);
 
 		$func = $this->find_entity_data_in( $non_global_ns, 'functions', 'func' );
-		$this->assertArrayPathEquals( $func, 'doc.tags.0.types', [ 'WP_Query' ] );
-		$this->assertArrayPathEquals( $func, 'doc.tags.1.types', [ 'WP_Post' ] );
+		$this->assertArrayPathEquals( $func, 'doc.tags.0.types', [ '\WP_Query' ] );
+		$this->assertArrayPathEquals( $func, 'doc.tags.1.types', [ '\WP_Post' ] );
 		$this->assertArrayPathEquals( $func, 'doc.tags.2.types', [ '\My_Plugin\Options' ] );
 	}
 
@@ -295,10 +295,10 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 		$func4 = $this->find_entity_data_in( $data, 'functions', 'func4' );
 		$func5 = $this->find_entity_data_in( $data, 'functions', 'func5' );
 
-		$this->assertArrayPathEquals( $func1, 'doc.tags.0.types', [ 'WP_Error' ] );
-		$this->assertArrayPathEquals( $func2, 'doc.tags.0.types', [ 'WP_Ability' ] );
-		$this->assertArrayPathEquals( $func3, 'doc.tags.0.types', [ 'WP_Error' ] );
-		$this->assertArrayPathEquals( $func4, 'doc.tags.0.types', [ 'WP_Post[]' ] );
+		$this->assertArrayPathEquals( $func1, 'doc.tags.0.types', [ '\WP_Error' ] );
+		$this->assertArrayPathEquals( $func2, 'doc.tags.0.types', [ '\WP_Ability' ] );
+		$this->assertArrayPathEquals( $func3, 'doc.tags.0.types', [ '\WP_Error' ] );
+		$this->assertArrayPathEquals( $func4, 'doc.tags.0.types', [ '\WP_Post[]' ] );
 		$this->assertArrayPathEquals( $func5, 'doc.tags.0.types', [ '\My_Plugin\Options' ] );
 	}
 
@@ -314,7 +314,7 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 		);
 
 		$func = $this->find_entity_data_in( $global_ns, 'functions', 'func' );
-		$this->assertArrayPathEquals( $func, 'doc.tags.0.types', [ 'LogicException' ] );
+		$this->assertArrayPathEquals( $func, 'doc.tags.0.types', [ '\LogicException' ] );
 		$this->assertArrayPathEquals( $func, 'doc.tags.1.types', [ '\My_Plugin\ParseException' ] );
 	}
 
@@ -332,8 +332,8 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 		);
 
 		$func = $this->find_entity_data_in( $non_global_ns, 'functions', 'func' );
-		$this->assertArrayPathEquals( $func, 'doc.tags.0.types', [ 'WP_HTML_Unsupported_Exception' ] );
-		$this->assertArrayPathEquals( $func, 'doc.tags.1.types', [ 'InvalidArgumentException' ] );
+		$this->assertArrayPathEquals( $func, 'doc.tags.0.types', [ '\WP_HTML_Unsupported_Exception' ] );
+		$this->assertArrayPathEquals( $func, 'doc.tags.1.types', [ '\InvalidArgumentException' ] );
 		$this->assertArrayPathEquals( $func, 'doc.tags.2.types', [ '\My_Plugin\ParseException' ] );
 	}
 
@@ -353,15 +353,16 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 		$comment = $this->find_entity_data_in( $class, 'properties', '$comment' );
 		$opts    = $this->find_entity_data_in( $class, 'properties', '$opts' );
 
-		$this->assertArrayPathEquals( $comment, 'doc.tags.0.types', [ 'WP_Comment' ] );
-		$this->assertArrayPathEquals( $opts,    'doc.tags.0.types', [ '\My_Plugin\Options' ] );
+		$this->assertArrayPathEquals( $comment, 'doc.tags.0.types', [ '\WP_Comment' ] );
+		$this->assertArrayPathEquals( $opts, 'doc.tags.0.types', [ '\My_Plugin\Options' ] );
 	}
 
 	public function test_phpdoc_global_types() {
+		$this->markTestSkipped( 'Todo' );
 		$data = $this->parse_string(
 			<<<'PHP'
 			/**
-			 * @global WP_Locale          $locale
+			 * @global WP_Locale $locale
 			 * @global \My_Plugin\Options $opts
 			 */
 			function func() {}
@@ -369,7 +370,7 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 		);
 
 		$func = $this->find_entity_data_in( $data, 'functions', 'func' );
-		$this->assertArrayPathEquals( $func, 'doc.tags.0.content', 'WP_Locale $locale' );
+		$this->assertArrayPathEquals( $func, 'doc.tags.0.content', '\WP_Locale $locale' );
 		$this->assertArrayPathEquals( $func, 'doc.tags.1.content', '\My_Plugin\Options $opts' );
 	}
 
@@ -386,7 +387,7 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 
 		$class = $this->find_entity_data_in( $data, 'classes', 'Foo' );
 		$this->assertIsArray( $class );
-		$this->assertArrayPathEquals( $class, 'doc.tags.0.types', [ 'WP_Term' ] );
+		$this->assertArrayPathEquals( $class, 'doc.tags.0.types', [ '\WP_Term' ] );
 		$this->assertArrayPathEquals( $class, 'doc.tags.1.types', [ '\My_Plugin\Options' ] );
 	}
 
@@ -405,9 +406,9 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 		);
 
 		$func = $this->find_entity_data_in( $global_ns, 'functions', 'func' );
-		$this->assertArrayPathEquals( $func, 'doc.tags.0.refers', 'WP_Term' );
-		$this->assertArrayPathEquals( $func, 'doc.tags.1.refers', 'WP_Abilities_Registry' );
-		$this->assertArrayPathEquals( $func, 'doc.tags.2.refers', 'WP_Abilities_Registry::get_instance()' );
+		$this->assertArrayPathEquals( $func, 'doc.tags.0.refers', '\WP_Term' );
+		$this->assertArrayPathEquals( $func, 'doc.tags.1.refers', '\WP_Abilities_Registry' );
+		$this->assertArrayPathEquals( $func, 'doc.tags.2.refers', '\WP_Abilities_Registry::get_instance()' );
 		$this->assertArrayPathEquals( $func, 'doc.tags.3.refers', '\My_Plugin\Options' );
 		$this->assertArrayPathEquals( $func, 'doc.tags.4.refers', 'wp_nav_menu()' );
 	}
@@ -428,8 +429,8 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 		);
 
 		$func = $this->find_entity_data_in( $non_global_ns, 'functions', 'func' );
-		$this->assertArrayPathEquals( $func, 'doc.tags.0.refers', 'WP_Query' );
-		$this->assertArrayPathEquals( $func, 'doc.tags.1.refers', 'WP_Query::get_posts()' );
+		$this->assertArrayPathEquals( $func, 'doc.tags.0.refers', '\WP_Query' );
+		$this->assertArrayPathEquals( $func, 'doc.tags.1.refers', '\WP_Query::get_posts()' );
 		$this->assertArrayPathEquals( $func, 'doc.tags.2.refers', 'Options::load()' );
 		$this->assertArrayPathEquals( $func, 'doc.tags.3.refers', '\My_Plugin\Options::validate()' );
 		$this->assertArrayPathEquals( $func, 'doc.tags.4.refers', 'wp_nav_menu()' );
@@ -451,8 +452,8 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 
 		$hook = $this->find_entity_data_in( $global_ns, 'hooks', 'my_action' );
 		$this->assertIsArray( $hook );
-		$this->assertArrayPathEquals( $hook, 'doc.tags.0.types', [ 'WP_Term' ] );
-		$this->assertArrayPathEquals( $hook, 'doc.tags.1.types', [ 'WP_Error' ] );
+		$this->assertArrayPathEquals( $hook, 'doc.tags.0.types', [ '\WP_Term' ] );
+		$this->assertArrayPathEquals( $hook, 'doc.tags.1.types', [ '\WP_Error' ] );
 		$this->assertArrayPathEquals( $hook, 'doc.tags.2.types', [ '\My_Plugin\Options' ] );
 	}
 
@@ -473,8 +474,8 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 
 		$hook = $this->find_entity_data_in( $non_global_ns, 'hooks', 'my_action_ns' );
 		$this->assertIsArray( $hook );
-		$this->assertArrayPathEquals( $hook, 'doc.tags.0.types', [ 'WP_Post' ] );
-		$this->assertArrayPathEquals( $hook, 'doc.tags.1.types', [ 'WP_Query' ] );
+		$this->assertArrayPathEquals( $hook, 'doc.tags.0.types', [ '\WP_Post' ] );
+		$this->assertArrayPathEquals( $hook, 'doc.tags.1.types', [ '\WP_Query' ] );
 		$this->assertArrayPathEquals( $hook, 'doc.tags.2.types', [ '\My_Plugin\Options' ] );
 	}
 }

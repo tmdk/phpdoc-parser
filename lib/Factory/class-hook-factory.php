@@ -20,7 +20,7 @@ class Hook_Factory {
 	private Pretty_Printer $pretty_printer;
 
 	public function __construct() {
-		$this->pretty_printer = new Pretty_Printer();
+		$this->pretty_printer = new Pretty_Printer( use_fully_qualified_names: false );
 	}
 
 	/**
@@ -43,7 +43,7 @@ class Hook_Factory {
 		$hook->set_line( $node->getStartLine() );
 		$hook->set_end_line( $node->getEndLine() );
 
-		$hook->set_arguments( $this->extract_arguments( $node ) );
+		$hook->set_arguments( $this->get_arguments( $node ) );
 
 		if ( $doc_block ) {
 			$hook->set_doc_block( $doc_block );
@@ -93,7 +93,6 @@ class Hook_Factory {
 			$name,
 			$matches
 		) ) {
-
 			if ( isset( $matches[3] ) ) {
 				return $matches[1] . '{' . $matches[2] . '}' . $matches[3];
 			} else {
@@ -131,7 +130,7 @@ class Hook_Factory {
 	 *
 	 * @return array
 	 */
-	private function extract_arguments( FuncCall $node ): array {
+	private function get_arguments( FuncCall $node ): array {
 		$arguments = [];
 
 		foreach ( array_slice( $node->args, 1 ) as $arg ) {

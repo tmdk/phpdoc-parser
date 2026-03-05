@@ -18,6 +18,9 @@
     <testsuite name="export">
       <directory suffix=".php">tests/phpunit/tests/export</directory>
     </testsuite>
+    <testsuite name="unit">
+      <directory suffix=".php">tests/phpunit/tests/unit</directory>
+    </testsuite>
     <testsuite name="regression">
       <directory suffix=".php">tests/phpunit/tests/parser/regression</directory>
     </testsuite>

@@ -8,16 +8,20 @@
 namespace WP_Parser\Factory;
 
 use PhpParser\Node;
+use WP_Parser\Formatter\Templated_String_Printer;
 use WP_Parser\Reflection\Class_;
+use WP_Parser\Reflection\Name;
 
 /**
  * Factory for creating Class_ objects from php-parser nodes.
  */
 class Class_Factory {
 	private Docblock_Factory $docblock_factory;
+	private Templated_String_Printer $printer;
 
 	public function __construct( Docblock_Factory $docblock_factory ) {
 		$this->docblock_factory = $docblock_factory;
+		$this->printer          = new Templated_String_Printer();
 	}
 
 	/**
@@ -38,13 +42,13 @@ class Class_Factory {
 
 		// Parent class
 		if ( $node->extends ) {
-			$class->set_extends( $node->extends->toCodeString() );
+			$class->set_extends( $this->printer->print_name( $node->extends ) );
 		}
 
 		// Interfaces
 		$implements = [];
 		foreach ( $node->implements as $interface ) {
-			$implements[] = $interface->toCodeString();
+			$implements[] = $this->printer->print_name( $interface );
 		}
 		$class->set_implements( $implements );
 
@@ -61,13 +65,11 @@ class Class_Factory {
 	}
 
 	private function get_namespace( Node\Stmt\Class_ $node ): string {
-		$namespace = null;
-
 		if ( $node->namespacedName instanceof Node\Name ) {
-			$namespace = $node->namespacedName->slice( 0, -1 )?->toCodeString();
+			return Name::from( $node->namespacedName )->get_namespace();
 		}
 
-		return $namespace ?: 'global';
+		return 'global';
 	}
 
 }

@@ -8,6 +8,7 @@
 namespace WP_Parser\Reflection;
 
 use WP_Parser\Attributes\Serialized_Name;
+use WP_Parser\Formatter\Templated_String;
 
 /**
  * Represents a method call.
@@ -17,7 +18,7 @@ class Method_Call {
 	private ?string $name = null;
 
 	#[Serialized_Name( 'class' )]
-	private ?string $class = null;
+	private string|Templated_String|null $class = null;
 
 	#[Serialized_Name( 'static' )]
 	private ?bool $static = false;
@@ -46,7 +47,7 @@ class Method_Call {
 	 *
 	 * @return void
 	 */
-	public function set_class( string $class ): void {
+	public function set_class( string|Templated_String $class ): void {
 		$this->class = $class;
 	}
 

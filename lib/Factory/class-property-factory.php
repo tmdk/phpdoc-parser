@@ -8,7 +8,7 @@
 namespace WP_Parser\Factory;
 
 use PhpParser\Node;
-use WP_Parser\Formatter\Pretty_Printer;
+use WP_Parser\Formatter\Templated_String_Printer;
 use WP_Parser\Reflection\Property;
 
 /**
@@ -16,11 +16,11 @@ use WP_Parser\Reflection\Property;
  */
 class Property_Factory {
 
-	private Pretty_Printer $pretty_printer;
+	private Templated_String_Printer $printer;
 	private Docblock_Factory $docblock_factory;
 
 	public function __construct( Docblock_Factory $docblock_factory ) {
-		$this->pretty_printer   = new Pretty_Printer();
+		$this->printer          = new Templated_String_Printer();
 		$this->docblock_factory = $docblock_factory;
 	}
 
@@ -53,7 +53,7 @@ class Property_Factory {
 
 			// Default value
 			if ( $prop->default !== null ) {
-				$property->set_default( $this->pretty_printer->prettyPrintExpr( $prop->default ) );
+				$property->set_default( $this->printer->print_node( $prop->default ) );
 			}
 
 			// Docblock

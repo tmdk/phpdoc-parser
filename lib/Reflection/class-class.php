@@ -8,6 +8,7 @@
 namespace WP_Parser\Reflection;
 
 use WP_Parser\Attributes\Serialized_Name;
+use WP_Parser\Formatter\Templated_String;
 
 /**
  * Represents a class.
@@ -32,7 +33,7 @@ class Class_ {
 	private bool $abstract = false;
 
 	#[Serialized_Name( 'extends' )]
-	private string $extends = '';
+	private string|Templated_String $extends = '';
 
 	#[Serialized_Name( 'implements' )]
 	private array $implements = [];
@@ -117,18 +118,18 @@ class Class_ {
 	/**
 	 * Set the parent class.
 	 *
-	 * @param string $extends
+	 * @param string|Templated_String $extends
 	 *
 	 * @return void
 	 */
-	public function set_extends( string $extends ): void {
+	public function set_extends( string|Templated_String $extends ): void {
 		$this->extends = $extends;
 	}
 
 	/**
 	 * Set the implemented interfaces.
 	 *
-	 * @param string[] $implements
+	 * @param (string|Templated_String)[] $implements
 	 *
 	 * @return void
 	 */
@@ -193,7 +194,7 @@ class Class_ {
 	/**
 	 * @return string
 	 */
-	public function get_extends(): string {
+	public function get_extends(): string|Templated_String {
 		return $this->extends;
 	}
 
@@ -246,10 +247,10 @@ class Class_ {
 		return $this->properties;
 	}
 
-	public function get_fully_qualified_name(): string {
+	public function get_fully_qualified_name(): Name {
 		$namespace = $this->namespace === 'global' ? '' : $this->namespace;
 
-		return '\\' . ltrim( $namespace . '\\' . $this->name, '\\' );
+		return new Name( ltrim( $namespace . '\\' . $this->name, '\\' ), fully_qualified: true );
 	}
 
 }

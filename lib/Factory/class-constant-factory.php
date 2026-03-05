@@ -10,7 +10,8 @@ namespace WP_Parser\Factory;
 use PhpParser\Node;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Stmt\Const_;
-use WP_Parser\Formatter\Pretty_Printer;
+use WP_Parser\Formatter\Templated_String;
+use WP_Parser\Formatter\Templated_String_Printer;
 use WP_Parser\Reflection\Constant;
 
 /**
@@ -18,10 +19,10 @@ use WP_Parser\Reflection\Constant;
  */
 class Constant_Factory {
 
-	private Pretty_Printer $pretty_printer;
+	private Templated_String_Printer $printer;
 
 	public function __construct() {
-		$this->pretty_printer = new Pretty_Printer();
+		$this->printer = new Templated_String_Printer();
 	}
 
 	/**
@@ -77,21 +78,21 @@ class Constant_Factory {
 		return $constants;
 	}
 
-	private function get_name( Node $node ) {
+	private function get_name( Node $node ): string|Templated_String {
 		return match ( true ) {
 			$node instanceof Node\Scalar\String_ => $node->value,
 			$node instanceof Node\Scalar\InterpolatedString => trim(
-				$this->pretty_printer->prettyPrintExpr( $node ),
+				(string) $this->printer->print_node( $node ),
 				'"'
 			),
-			$node instanceof Node\Expr => $this->pretty_printer->prettyPrintExpr( $node ),
+			$node instanceof Node\Expr => $this->printer->print_expr( $node ),
 			default => assert( false, new \InvalidArgumentException( 'Unexpected node type: ' . $node::class ) )
 		};
 	}
 
-	private function get_value( Node $node ) {
+	private function get_value( Node $node ): string {
 		return match ( true ) {
-			$node instanceof Node\Expr => $this->pretty_printer->prettyPrintExpr( $node ),
+			$node instanceof Node\Expr => (string) $this->printer->print_expr( $node ),
 			default => assert( false, new \InvalidArgumentException( 'Unexpected node type: ' . $node::class ) )
 		};
 	}

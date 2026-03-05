@@ -11,9 +11,11 @@ use PhpParser\Node;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\StaticCall;
-use WP_Parser\Formatter\Pretty_Printer;
+use WP_Parser\Formatter\Templated_String;
+use WP_Parser\Formatter\Templated_String_Printer;
 use WP_Parser\Reflection\Class_;
 use WP_Parser\Reflection\Method_Call;
+use WP_Parser\Reflection\Name;
 use WP_Parser\Scope;
 
 /**
@@ -24,7 +26,7 @@ class Method_Call_Factory {
 	/**
 	 * Mapping of global variable names to their class names.
 	 */
-	private const GLOBAL_VAR_MAPPING = [
+	public const GLOBAL_VAR_MAPPING = [
 		'authordata'          => 'WP_User',
 		'custom_background'   => 'Custom_Background',
 		'custom_image_header' => 'Custom_Image_Header',
@@ -55,16 +57,16 @@ class Method_Call_Factory {
 	/**
 	 * Mapping of function calls to their return type class names.
 	 */
-	private const FUNCTION_RETURN_MAPPING = [
+	public const FUNCTION_RETURN_MAPPING = [
 		'get_current_screen()' => 'WP_Screen',
 		'_get_list_table()'    => 'WP_List_Table',
 		'wp_get_theme()'       => 'WP_Theme',
 	];
 
-	private Pretty_Printer $pretty_printer;
+	private Templated_String_Printer $printer;
 
 	public function __construct() {
-		$this->pretty_printer = new Pretty_Printer();
+		$this->printer = new Templated_String_Printer();
 	}
 
 	public function create( New_|MethodCall|StaticCall $node, Scope $scope ): ?Method_Call {
@@ -101,9 +103,11 @@ class Method_Call_Factory {
 		return $method_call;
 	}
 
-	private function get_class_for_new( Node $node, Class_ $class = null ): ?string {
+	private function get_class_for_new( Node $node, Class_ $class = null ): string|Templated_String|null {
 		if ( $node instanceof Node\Stmt\Class_ ) {
-			return $node->extends?->toCodeString();
+			$extends = $node->extends;
+
+			return $extends ? $this->printer->print_name( $extends ) . '@anonymous' : 'class@anonymous';
 		}
 
 		return $this->get_class( $node, $class );
@@ -117,7 +121,6 @@ class Method_Call_Factory {
 		$method_call->set_static( false );
 
 		return $method_call;
-
 	}
 
 	private function from_static_call( StaticCall $node, Class_ $class = null ): Method_Call {
@@ -132,20 +135,20 @@ class Method_Call_Factory {
 	private function get_name( Node $node ): string {
 		return match ( true ) {
 			$node instanceof Node\Identifier => $node->toString(),
-			$node instanceof Node\Expr => $this->pretty_printer->prettyPrintExpr( $node ),
+			$node instanceof Node\Expr => (string) $this->printer->print_node( $node ),
 			default => assert( false, new \InvalidArgumentException( 'Unexpected node type: ' . $node::class ) )
 		};
 	}
 
-	private function get_class( Node $node, Class_ $class = null ): string {
+	private function get_class( Node $node, Class_ $class = null ): string|Templated_String {
 		if ( $this->is_class_reference( $node ) && $class ) {
 			$class_name = $this->resolve_special_classname( $node, $class );
 		} elseif ( $this->is_global_var( $node ) ) {
 			$class_name = $this->get_class_for_global( $node );
 		} elseif ( $node instanceof Node\Name ) {
-			$class_name = $node->toCodeString();
+			$class_name = $this->printer->print_name( $node );
 		} elseif ( $node instanceof Node\Expr ) {
-			$class_name = $this->pretty_printer->prettyPrintExpr( $node );
+			$class_name = $this->printer->print_expr( $node );
 		} elseif ( $node instanceof Node\Stmt\Class_ ) {
 			$class_name = $node->name->toString();
 		} else {
@@ -153,8 +156,10 @@ class Method_Call_Factory {
 			$class_name = assert( false, $exception );
 		}
 
-		if ( array_key_exists( $class_name, self::FUNCTION_RETURN_MAPPING ) ) {
-			$class_name = self::FUNCTION_RETURN_MAPPING[ $class_name ];
+		if ( array_key_exists( (string) $class_name, self::FUNCTION_RETURN_MAPPING ) ) {
+			$class_name = self::FUNCTION_RETURN_MAPPING[ (string) $class_name ];
+
+			return Templated_String::from_name( new Name( $class_name, fully_qualified: true ) );
 		}
 
 		return $class_name;
@@ -165,12 +170,12 @@ class Method_Call_Factory {
 			|| ( $node instanceof Node\Expr\Variable && $node->name === 'this' );
 	}
 
-	private function resolve_special_classname( Node $node, Class_ $class ): string {
+	private function resolve_special_classname( Node $node, Class_ $class ): string|Templated_String {
 		assert( $node instanceof Node\Name || $node instanceof Node\Expr\Variable );
 
 		return match ( $node->name ) {
 			'parent' => $class->get_extends(),
-			'self', 'this' => $class->get_fully_qualified_name(),
+			'self', 'this' => Templated_String::from_name( $class->get_fully_qualified_name() ),
 			default => $node->toString(),
 		};
 	}

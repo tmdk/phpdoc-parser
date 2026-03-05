@@ -24,13 +24,23 @@ class Pretty_Printer extends Standard {
 		'null',
 	];
 
-	public function __construct() {
+	public function __construct( protected bool $use_fully_qualified_names = true ) {
 		parent::__construct( [ 'shortArraySyntax' => false ] );
 	}
 
 	protected function pName_FullyQualified( Name\FullyQualified $node ): string {
 		if ( $this->is_special_const_name( $node->name ) ) {
 			return $node->name;
+		}
+
+		if ( ! $this->use_fully_qualified_names ) {
+			$original_name = $node->getAttribute( 'originalName' );
+
+			if ( $original_name instanceof Name ) {
+				return $original_name->toCodeString();
+			}
+
+			return $this->pName( $node );
 		}
 
 		$context_class    = $node->getAttribute( 'nameContextNodeClass' );
