@@ -1,5 +1,7 @@
 <?php
 
+use WP_Parser\Factory\Method_Call_Factory;
+
 const KEYWORD_REGEX =
 	'/^\\\\\\??(?:string|class-string|interface-string|html-escaped-string' .
 	'|lowercase-string|non-empty-lowercase-string|non-empty-string' .
@@ -12,8 +14,8 @@ const KEYWORD_REGEX =
 const TYPE_ALIASES = [
 	'integer' => 'int',
 	'boolean' => 'bool',
-	'double' => 'float',
-	'real' => 'float',
+	'double'  => 'float',
+	'real'    => 'float',
 	'mixed[]' => 'array',
 ];
 
@@ -33,11 +35,13 @@ function _normalize_whitespace( mixed $str ): mixed {
 
 function _normalize_inline_tags( string $str ): string {
 	// Normalize whitespace inside inline tags: {@tag content } -> {@tag content}
-	return preg_replace_callback( '/\{@(\w+)(.*?)\}/', function ( $m ) {
+	return preg_replace_callback(
+		'/\{@(\w+)(.*?)\}/', function ( $m ) {
 		$content = trim( $m[2] );
 
 		return '{@' . $m[1] . ( $content !== '' ? ' ' . $content : '' ) . '}';
-	}, $str );
+	}, $str
+	);
 }
 
 function _uses_differ_only_in_order( ?array $expected, ?array $actual ): bool {
@@ -47,12 +51,21 @@ function _uses_differ_only_in_order( ?array $expected, ?array $actual ): bool {
 	if ( $expected === $actual ) {
 		return false;
 	}
+	if ( ! isset( $expected[0]['line'] ) ) {
+		return false;
+	}
 
-	$sort = function ( array $arr ) {
-		$copy = $arr;
-		usort( $copy, fn( $a, $b ) => $a['line'] <=> $b['line']
+	$normalize = fn( array $item ) => isset( $item['class'] )
+		? array_merge( $item, [ 'class' => ltrim( $item['class'], '\\' ) ] )
+		: $item;
+
+	$sort = function ( array $arr ) use ( $normalize ) {
+		$copy = array_map( $normalize, $arr );
+		usort(
+			$copy, fn( $a, $b ) => $a['line'] <=> $b['line']
 			?: $a['end_line'] <=> $b['end_line']
-			?: strcmp( $a['name'], $b['name'] ) );
+				?: strcmp( $a['name'], $b['name'] )
+		);
 
 		return $copy;
 	};
@@ -118,6 +131,7 @@ REGEX;
  * Check if a type string contains invalid type syntax.
  *
  * @param mixed $str The string to check.
+ *
  * @return bool True if the type is invalid, false otherwise.
  */
 function is_invalid_type( mixed $str ): bool {
@@ -132,6 +146,7 @@ function is_invalid_type( mixed $str ): bool {
  * - "new \WP_REST_Response(array())"
  *
  * @param mixed $str The string to check.
+ *
  * @return bool True if the string contains new with leading backslash.
  */
 function has_new_with_leading_backslash( mixed $str ): bool {
@@ -155,8 +170,10 @@ function _is_phantom_tag( mixed $tag ): bool {
 		if ( is_array( $value ) && $value === [ null ] ) {
 			continue;
 		}
+
 		return false;
 	}
+
 	return true;
 }
 
@@ -172,6 +189,45 @@ function _is_empty_doc( mixed $doc ): bool {
 			return false;
 		}
 	}
+
 	return true;
 }
 
+function expression_resolves_to_classname( $expected, $actual ): bool {
+	if ( $expected === null || $actual === null ) {
+		return false;
+	}
+
+	return ( Method_Call_Factory::FUNCTION_RETURN_MAPPING[ $expected ] ?? null ) === ltrim( $actual, '\\' )
+		|| ( Method_Call_Factory::GLOBAL_VAR_MAPPING[ $expected ] ?? null ) === ltrim( $actual, '\\' );
+}
+
+/**
+ * Convert short array syntax to long array syntax, iteratively replacing innermost brackets.
+ */
+function _array_short_to_long( string $s ): string {
+	$prev = null;
+	while ( $prev !== $s ) {
+		$prev = $s;
+		$s    = preg_replace( '/\[([^\[\]]*)\]/', 'array($1)', $s );
+	}
+
+	return $s;
+}
+
+function equals_with_quoted_strings_stripped( $expected, $actual ): bool {
+	// test without backslashes because they might interfere.
+	$expected = str_replace( '\\', '', $expected );
+	$actual = str_replace( '\\', '', $actual );
+	$expected = _array_short_to_long( $expected );
+	$actual = _array_short_to_long( $actual );
+
+	$normalized = preg_replace(
+		[
+			"/'(?:\\\\.|[^'])*'/",
+			'/"(?:\\\\.|[^"])*"/',
+		], '', $actual
+	);
+
+	return $normalized === $expected;
+}

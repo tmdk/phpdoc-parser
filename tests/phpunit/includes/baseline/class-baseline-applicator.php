@@ -74,13 +74,19 @@ class Baseline_Applicator {
 				continue;
 			}
 
-			if ( isset( $entry[ $type ] )
-				&& (
-					! is_array( $entry[ $type ] ) && $entry[ $type ] !== $name
-					|| is_array( $entry[ $type ] ) && ! in_array( $name, $entry[ $type ], true )
-				)
-			) {
-				continue;
+			if ( isset( $entry[ $type ] ) ) {
+				$matcher = $entry[ $type ];
+				if ( is_callable( $matcher ) ) {
+					if ( ! $matcher( $name ) ) {
+						continue;
+					}
+				} elseif ( is_array( $matcher ) ) {
+					if ( ! in_array( $name, $matcher, true ) ) {
+						continue;
+					}
+				} elseif ( $matcher !== $name ) {
+					continue;
+				}
 			}
 
 			$path = isset( $entry['path'] ) ? $this->parse_path( $entry['path'] ) : [];

@@ -98,16 +98,16 @@ abstract class Regression_TestCase extends TestCase {
 	 * @param array  $file
 	 * @param string $function_name
 	 *
-	 * @return array
+	 * @return array|null
 	 */
-	protected function find_function( array $file, string $function_name ): array {
+	protected function find_function( array $file, string $function_name ): ?array {
 		foreach ( $file['functions'] ?? [] as $function ) {
 			if ( $function['name'] === $function_name ) {
 				return $function;
 			}
 		}
 
-		$this->fail( "Function '{$function_name}' not found" );
+		return null;
 	}
 
 	/**
@@ -116,16 +116,16 @@ abstract class Regression_TestCase extends TestCase {
 	 * @param array  $file
 	 * @param string $class_name
 	 *
-	 * @return array
+	 * @return array|null
 	 */
-	protected function find_class( array $file, string $class_name ): array {
+	protected function find_class( array $file, string $class_name ): ?array {
 		foreach ( $file['classes'] ?? [] as $class ) {
 			if ( $class['name'] === $class_name ) {
 				return $class;
 			}
 		}
 
-		$this->fail( "Class '{$class_name}' not found" );
+		return null;
 	}
 
 	/**
@@ -135,10 +135,14 @@ abstract class Regression_TestCase extends TestCase {
 	 * @param string $class_name
 	 * @param string $method_name
 	 *
-	 * @return array
+	 * @return array|null
 	 */
-	protected function find_method( array $file, string $class_name, string $method_name ): array {
+	protected function find_method( array $file, string $class_name, string $method_name ): ?array {
 		$class = $this->find_class( $file, $class_name );
+
+		if ( $class === null ) {
+			return null;
+		}
 
 		foreach ( $class['methods'] ?? [] as $method ) {
 			if ( $method['name'] === $method_name ) {
@@ -146,7 +150,7 @@ abstract class Regression_TestCase extends TestCase {
 			}
 		}
 
-		$this->fail( "Method '{$class_name}::{$method_name}' not found" );
+		return null;
 	}
 
 	protected function apply_baseline_resolutions( string $type, string $name, array $expected, array $actual ): array {
@@ -201,13 +205,15 @@ trait Test_Class_Trait {
 		$actual = $this->find_class( $file, $class_name );
 
 		unset( $expected['methods'] );
-		unset( $actual['methods'] );
+		if ( $actual !== null ) {
+			unset( $actual['methods'] );
+		}
 
 		[ $expected, $actual ] = $this->apply_baseline_resolutions(
 			'class',
 			$class_name,
 			$expected,
-			$actual
+			$actual ?? []
 		);
 
 		$this->assertEquals( $expected, $actual );
@@ -228,7 +234,7 @@ trait Test_Function_Trait {
 			'function',
 			$function_name,
 			$expected,
-			$actual
+			$actual ?? []
 		);
 
 		[ $expected, $actual ] = $this->apply_hook_baselines( $expected, $actual );
@@ -251,7 +257,7 @@ trait Test_Method_Trait {
 			'method',
 			"$class_name::$method_name",
 			$expected,
-			$actual
+			$actual ?? []
 		);
 
 		[ $expected, $actual ] = $this->apply_hook_baselines( $expected, $actual );

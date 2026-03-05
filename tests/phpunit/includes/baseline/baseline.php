@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/_helpers.php';
 
 /**
@@ -48,6 +49,36 @@ $invalid_type_syntax = [
 	},
 ];
 
+$old_parser_namespaced_self_in_types = [
+	// Old parser concatenated the namespace to the whole type string, producing malformed types such as:
+	// \NS\self::CONST, \NS\non-negative-int, \NS\?ClassName (nullable ? in wrong position)
+	'id' => 'old-parser-concatenated-namespace-to-type-string',
+
+	'filter'     => function ( $expected, $actual ) {
+		if ( ! is_string( $expected ) || ! is_string( $actual ) ) {
+			return false;
+		}
+		// Case 1: \NS\self::CONST or \NS\hyphenated-pseudotype -> self::CONST or hyphenated-pseudotype
+		if ( preg_match( '/^\\\\?(?:\w+\\\\)+(?:self::|[\w]+-[\w-]*)/', $expected )
+			&& preg_replace( '/^\\\\?(?:\w+\\\\)+/', '', $expected ) === $actual ) {
+			return true;
+		}
+		// Case 2: \NS\?ClassName -> ?\NS\ClassName (nullable ? repositioned before FQCN)
+		if ( preg_match( '/^(\\\\?(?:\w+\\\\)+)\?(.+)$/', $expected, $m )
+			&& $actual === '?' . $m[1] . $m[2] ) {
+			return true;
+		}
+		// Case 3: \NS\?\AlreadyFQCN -> ?\AlreadyFQCN (suffix was already fully qualified)
+		$suffix = preg_replace( '/^\\\\?(?:\w+\\\\)+/', '', $expected );
+		if ( str_starts_with( $suffix, '?' ) && $suffix === $actual ) {
+			return true;
+		}
+
+		return false;
+	},
+	'resolution' => fn( $expected, $actual ) => [ $actual ],
+];
+
 $generic_array_to_shorthand = [
 	// phpDocumentor normalizes generic array syntax to shorthand (array<Type> -> Type[], array<mixed> -> array)
 	'id' => 'phpdocumentor-normalizes-generic-array-syntax-to-shorthand-arraytype---type-arraymixed---array',
@@ -94,6 +125,45 @@ $remove_redundant_parentheses = [
 	'resolution' => fn( $expected, $actual ) => [ $actual ],
 ];
 
+$fully_qualified_type_in_types = [
+	'id' => 'fully-qualified-type-in-types',
+
+	'filter'     => function ( $expected, $actual ) {
+		if ( $expected === null ) {
+			return false;
+		}
+		// Non-nullable: Foo -> \Foo
+		if ( str_starts_with( $actual, '\\' ) && substr( $actual, 1 ) === $expected ) {
+			return true;
+		}
+		// Nullable: ?Foo -> ?\Foo
+		if ( str_starts_with( $expected, '?' ) && str_starts_with( $actual, '?\\' ) && substr( $actual, 2 ) === substr( $expected, 1 ) ) {
+			return true;
+		}
+
+		return false;
+	},
+	'resolution' => fn( $expected, $actual ) => [ $actual ],
+];
+
+$method_uses_class_fully_qualified_name  = [
+	// new parser uses fully qualified name in-method uses
+	'id' => 'new-parser-uses-fully-qualified-name-in-method-uses',
+
+	'path'       => 'uses.methods[].class',
+	'filter'     => fn( $expected, $actual ) => isset( $expected, $actual )
+		&& str_starts_with( $actual, '\\' ) && substr( $actual, 1 ) === $expected,
+	'resolution' => fn( $expected, $actual ) => [ $actual ],
+];
+$method_uses_class_resolves_to_classname = [
+	// new parser resolves method uses class to classname ($wpdb -> wpdb, get_current_screen() -> WP_Screen)
+	'id' => 'new-parser-resolves-method-uses-class-to-classname',
+
+	'path'       => 'uses.methods[].class',
+	'filter'     => fn( $expected, $actual ) => expression_resolves_to_classname( $expected, $actual ),
+	'resolution' => fn( $expected, $actual ) => [ $actual ],
+];
+
 $generic_type_space_after_comma = [
 	// phpDocumentor 6.x adds a space after commas in generic type parameters (array<string,bool> -> array<string, bool>)
 	'id' => 'phpdocumentor-adds-space-after-commas-in-generic-type-parameters',
@@ -108,7 +178,7 @@ $generic_type_space_after_comma = [
 	'resolution' => fn( $expected, $actual ) => [ $actual ],
 ];
 
-$string_literal_quote_normalization = [
+$string_literal_quote_normalization    = [
 	// phpDocumentor normalizes single-quoted string literals to double-quoted ('V' -> "V")
 	'id' => 'phpdocumentor-normalizes-single-quoted-string-literals-to-double-quoted-v---v',
 
@@ -118,6 +188,41 @@ $string_literal_quote_normalization = [
 		}
 
 		return preg_replace( '/^\\\\?\'(.+)\'$/', '"\\1"', $expected ) === $actual;
+	},
+	'resolution' => fn( $expected, $actual ) => [ $actual ],
+];
+$default_value_omitted                 = [
+	// old parser omits default value
+	'id'         => 'old-parser-omits-default-value',
+	'filter'     => function ( $expected, $actual ) {
+		if ( $expected === null || $actual === null ) {
+			return false;
+		}
+
+		return $expected === '' && $actual !== $expected;
+	},
+	'resolution' => fn( $expected, $actual ) => [ $actual ],
+];
+$default_value_quoted_strings_stripped = [
+	'id'         => 'old-parser-replaces-quoted-strings-with-space',
+	'filter'     => function ( $expected, $actual ) {
+		if ( $expected === null || $actual === null ) {
+			return false;
+		}
+
+		return equals_with_quoted_strings_stripped( $expected, $actual );
+	},
+	'resolution' => fn( $expected, $actual ) => [ $actual ],
+];
+$default_value_comments_stripped       = [
+	'id'         => 'new-parser-strips-comments-from-default-values',
+	'filter'     => function ( $expected, $actual ) {
+		if ( $expected === null || $actual === null ) {
+			return false;
+		}
+
+		return ( str_contains( $expected, '/*' ) && ! str_contains( $actual, '/*' ) )
+			|| ( str_contains( $expected, '//' ) && ! str_contains( $actual, '//' ) );
 	},
 	'resolution' => fn( $expected, $actual ) => [ $actual ],
 ];
@@ -145,18 +250,40 @@ $inline_tag_whitespace = [
 ];
 
 $leading_backslash_in_refers = [
-	// Old parser keeps leading backslash in @see refers
-	'id' => 'old-parser-keeps-leading-backslash-in-see-refers',
+	// New parser adds leading backslash in refers
+	'id' => 'new-parser-adds-leading-backslash-in-refers',
 
 	'filter'     => fn( $expected, $actual ) => $expected !== null
 		&& isset( $expected['refers'], $actual['refers'] )
-		&& str_starts_with( $expected['refers'], '\\' )
-		&& ltrim( $expected['refers'], '\\' ) === $actual['refers'],
+		&& str_starts_with( $actual['refers'], '\\' )
+		&& ltrim( $actual['refers'], '\\' ) === $expected['refers'],
 	'resolution' => function ( $expected, $actual ) {
 		$expected['refers'] = $actual['refers'];
 
 		return [ $expected ];
 	},
+];
+
+$escape_double_quotes = [
+	// new parser escapes double quotes
+	'id' => 'new-parser-escapes-double-quotes',
+
+	'path'       => 'doc.{description|long_description}',
+	'filter'     => fn( $expected, $actual ) => $expected !== null
+		&& str_contains( $expected, '"' )
+		&& preg_replace( '/(?<!<a href=)"(?!>http)/', '&quot;', $expected ) === $actual,
+	'resolution' => fn( $expected, $actual ) => [ $actual ],
+];
+
+$deprecation_version_omitted = [
+	// Old parser omits deprecation_version
+	'id' => 'old-parser-omits-deprecation-version',
+
+	'path'       => 'uses.functions[]',
+	'filter'     => fn( $expected, $actual ) => $expected !== null
+		&& ! array_key_exists( 'deprecation_version', $expected )
+		&& array_key_exists( 'deprecation_version', $actual ),
+	'resolution' => fn( $expected, $actual ) => [ $actual ],
 ];
 
 $callable_baseline = [
@@ -165,7 +292,59 @@ $callable_baseline = [
 		'path' => 'doc.tags[].{content|description}',
 	],
 	[
+		// New parser adds leading backslash to names in inline {@see} tags within descriptions.
+		// Old parser also sometimes omitted whitespace inside inline tags ({@tag()} vs {@tag ()}).
+		'id' => 'new-parser-adds-leading-backslash-in-refers',
+
+		'path'   => 'doc.{description|long_description}',
+		'filter' => function ( $expected, $actual ) {
+			if ( ! is_string( $expected ) || ! is_string( $actual ) || $expected === $actual ) {
+				return false;
+			}
+			$normalize = fn( $s ) => _normalize_inline_tags( preg_replace( '/\{@see \\\\/', '{@see ', $s ) );
+
+			return $normalize( $expected ) === $normalize( $actual );
+		},
+		'resolution' => fn( $expected, $actual ) => [ $actual ],
+	],
+	[
+		// Old parser stripped backslashes from literal escape sequences (e.g. \n, \t) in tag content,
+		// treating them as PHP escape sequences. New parser preserves the literal backslash.
+		'id' => 'old-parser-stripped-backslashes-from-literal-escape-sequences-in-tag-content',
+
+		'path'       => 'doc.tags[].content',
+		'filter'     => fn( $expected, $actual ) => is_string( $expected )
+			&& is_string( $actual )
+			&& $expected !== $actual
+			&& str_replace( '\\', '', $actual ) === $expected,
+		'resolution' => fn( $expected, $actual ) => [ $actual ],
+	],
+	[
+		// Old parser evaluated \xHH hex escape sequences in docblock descriptions, stripping the backslash.
+		// New parser preserves the literal \xHH. Only strip \x before hex chars to avoid touching \u{...} etc.
+		'id' => 'old-parser-stripped-backslashes-from-hex-escape-sequences-in-doc-description',
+
+		'path'       => 'doc.{description|long_description}',
+		'filter'     => fn( $expected, $actual ) => is_string( $expected )
+			&& is_string( $actual )
+			&& $expected !== $actual
+			&& preg_replace( '/\\\\(?=x[0-9a-fA-F])/', '', $actual ) === $expected,
+		'resolution' => fn( $expected, $actual ) => [ $actual ],
+	],
+	[
 		...$inline_tag_whitespace,
+	],
+	[
+		...$default_value_omitted,
+		'path' => 'arguments[].default',
+	],
+	[
+		...$fully_qualified_type_in_types,
+		'path' => 'arguments[].type',
+	],
+	[
+		...$default_value_quoted_strings_stripped,
+		'path' => 'arguments[].default',
 	],
 	[
 		// Old parser flattens indented code blocks in docblocks to <p>, new parser correctly renders as <pre><code>
@@ -183,6 +362,18 @@ $callable_baseline = [
 		'path' => 'doc.tags[]',
 	],
 	[
+		// New parser resolves unqualified names in @uses tag refers to their FQCN within the current namespace
+		'id' => 'new-parser-resolves-uses-tag-refers-to-fqcn',
+
+		'path'       => 'doc.tags[]',
+		'filter'     => fn( $expected, $actual ) => isset( $expected['refers'], $actual['refers'] )
+			&& ( $expected['name'] ?? null ) === 'uses'
+			&& ! str_starts_with( $expected['refers'], '\\' )
+			&& str_starts_with( $actual['refers'], '\\' )
+			&& str_ends_with( $actual['refers'], '\\' . $expected['refers'] ),
+		'resolution' => fn( $expected, $actual ) => [ $actual ],
+	],
+	[
 		// Old parser incorrectly adds leading backslash to unqualified class names in new expressions
 		'id' => 'old-parser-incorrectly-adds-leading-backslash-to-unqualified-class-names-in-new-expressions',
 
@@ -190,6 +381,80 @@ $callable_baseline = [
 		'filter'     => fn( $expected, $actual ) => isset( $expected['class'], $actual['class'] )
 			&& has_new_with_leading_backslash( $expected['class'] )
 			&& preg_replace( '/\bnew\s+\\\\/', 'new ', $expected['class'] ) === $actual['class'],
+		'resolution' => function ( $expected, $actual ) {
+			$expected['class'] = $actual['class'];
+
+			return [ $expected ];
+		},
+	],
+	[
+		// New parser correctly adds leading backslash to global-namespace class names in new expressions
+		'id' => 'new-parser-adds-leading-backslash-to-global-namespace-class-names-in-new-expressions',
+
+		'path'       => 'uses.methods[]',
+		'filter'     => fn( $expected, $actual ) => isset( $expected['class'], $actual['class'] )
+			&& has_new_with_leading_backslash( $actual['class'] )
+			&& preg_replace( '/\bnew\s+\\\\/', 'new ', $actual['class'] ) === $expected['class'],
+		'resolution' => function ( $expected, $actual ) {
+			$expected['class'] = $actual['class'];
+
+			return [ $expected ];
+		},
+	],
+	[
+		// Old parser added a leading backslash to global function calls inside method class expressions,
+		// e.g. $obj->method(\wp_timezone()) instead of $obj->method(wp_timezone()).
+		'id' => 'old-parser-added-leading-backslash-to-global-function-calls-in-method-class-expressions',
+
+		'path'       => 'uses.methods[]',
+		'filter'     => fn( $expected, $actual ) => isset( $expected['class'], $actual['class'] )
+			&& preg_match( '/\\\\[a-z_]\w*\(/', $expected['class'] )
+			&& preg_replace( '/\\\\(?=[a-z_]\w*\()/', '', $expected['class'] ) === $actual['class'],
+		'resolution' => function ( $expected, $actual ) {
+			$expected['class'] = $actual['class'];
+
+			return [ $expected ];
+		},
+	],
+	[
+		// Old parser added a leading backslash to boolean/null constants (false, true, null) in expressions,
+		// treating them like fully-qualified names. New parser correctly emits them without a backslash.
+		// This may coincide with the leading-backslash difference on the class name itself (e.g. new \ClassName).
+		'id' => 'old-parser-added-leading-backslash-to-boolean-null-constants-in-expressions',
+
+		'path'   => 'uses.methods[]',
+		'filter' => function ( $expected, $actual ) {
+			if ( ! isset( $expected['class'], $actual['class'] ) ) {
+				return false;
+			}
+			if ( ! preg_match( '/\\\\(false|true|null)\b/', $expected['class'] ) ) {
+				return false;
+			}
+			$normalize = function ( $s ) {
+				$s = ltrim( $s, '\\' );
+				$s = preg_replace( '/\\\\(false|true|null)\b/', '$1', $s );
+				$s = preg_replace( '/\bnew \\\\/', 'new ', $s );
+
+				return $s;
+			};
+
+			return $normalize( $expected['class'] ) === $normalize( $actual['class'] );
+		},
+		'resolution' => function ( $expected, $actual ) {
+			$expected['class'] = $actual['class'];
+
+			return [ $expected ];
+		},
+	],
+	[
+		// New parser names anonymous class instantiations using the extended class name (ClassName@anonymous),
+		// while the old parser used the generic 'class@anonymous' format.
+		'id' => 'new-parser-names-anonymous-class-instantiations-with-extended-class-name',
+
+		'path'       => 'uses.methods[]',
+		'filter'     => fn( $expected, $actual ) => isset( $expected['class'], $actual['class'] )
+			&& $expected['class'] === 'class@anonymous'
+			&& str_ends_with( $actual['class'], '@anonymous' ),
 		'resolution' => function ( $expected, $actual ) {
 			$expected['class'] = $actual['class'];
 
@@ -215,6 +480,8 @@ $callable_baseline = [
 			return [ $expected ];
 		},
 	],
+	$method_uses_class_fully_qualified_name,
+	$method_uses_class_resolves_to_classname,
 	[
 		// Uses ordering differs between old and new parser
 		'id' => 'uses-ordering-differs-between-old-and-new-parser',
@@ -232,6 +499,19 @@ $callable_baseline = [
 			&& is_string( $actual )
 			&& $expected !== $actual
 			&& preg_replace( '/\\\\([A-Z][a-zA-Z0-9_]*::)/', '$1', $expected ) === $actual,
+		'resolution' => fn( $expected, $actual ) => [ $actual ],
+	],
+	[
+		// Old parser expanded use-imported class names to FQCNs in argument defaults (e.g. Requests::GET -> \WpOrg\Requests\Requests::GET), new parser keeps name as written
+		'id' => 'old-parser-expanded-use-imported-class-names-to-fqcns-in-argument-defaults',
+
+		'path'       => 'arguments[].default',
+		'filter'     => fn( $expected, $actual ) => is_string( $expected )
+			&& is_string( $actual )
+			&& str_contains( $expected, '::' )
+			&& str_contains( $actual, '::' )
+			&& preg_match( '/^\\\\?(?:\w+\\\\)+(\w+::.+)$/', $expected, $m )
+			&& $m[1] === $actual,
 		'resolution' => fn( $expected, $actual ) => [ $actual ],
 	],
 	[
@@ -283,6 +563,10 @@ $callable_baseline = [
 		'path'       => 'doc.{description|long_description}',
 		'filter'     => fn( $expected, $actual ) => $expected !== null && str_contains( $expected, '{}' ),
 		'resolution' => fn( $expected, $actual ) => [ str_replace( '{}', '}', $expected ) ],
+	],
+	[
+		...$escape_double_quotes,
+		'path' => 'doc.tags[].content',
 	],
 	[
 		// Invalid type syntax in param types
@@ -339,7 +623,9 @@ $callable_baseline = [
 		'id' => 'phpdocumentor-normalizes-type-aliases-integer-int-boolean-bool-etc',
 
 		'path'       => 'doc.tags[].types[]',
-		'filter'     => fn( $expected, $actual ) => $expected !== null && isset( TYPE_ALIASES[ $expected ] ) && TYPE_ALIASES[ $expected ] === $actual,
+		'filter'     => fn( $expected, $actual ) => $expected !== null &&
+			isset( TYPE_ALIASES[ $expected ] ) &&
+			TYPE_ALIASES[ $expected ] === $actual,
 		'resolution' => fn( $expected, $actual ) => [ $actual ],
 	],
 	[
@@ -361,6 +647,14 @@ $callable_baseline = [
 		'path' => 'doc.tags[].types[]',
 	],
 	[
+		...$fully_qualified_type_in_types,
+		'path' => 'doc.tags[].types[]',
+	],
+	[
+		...$old_parser_namespaced_self_in_types,
+		'path' => 'doc.tags[].types[]',
+	],
+	[
 		...$string_literal_quote_normalization,
 		'path' => 'doc.tags[].types[]',
 	],
@@ -371,6 +665,46 @@ $callable_baseline = [
 	[
 		...$invalid_type_syntax,
 		'path' => 'doc.tags[]',
+	],
+	[
+		// Old parser namespace-prefixed numeric literal types (e.g. \NS\-1, \NS\1), new parser keeps them as-is
+		'id' => 'old-parser-namespace-prefixed-numeric-literal-types',
+
+		'path'       => 'doc.tags[]',
+		'filter'     => function ( $expected, $actual ) {
+			if ( ! isset( $expected['types'], $actual['types'] ) ) {
+				return false;
+			}
+
+			foreach ( $expected['types'] as $type ) {
+				if ( is_string( $type ) && preg_match( '/^\\\\.*\\\\-?\d+$/', $type ) ) {
+					return true;
+				}
+			}
+
+			return false;
+		},
+		'resolution' => fn( $expected, $actual ) => [ $actual ],
+	],
+	[
+		// Old parser concatenated intersection types (&) into a single broken type string, new parser splits them correctly
+		'id' => 'old-parser-concatenated-intersection-types-into-single-type-string',
+
+		'path'       => 'doc.tags[]',
+		'filter'     => function ( $expected, $actual ) {
+			if ( ! isset( $expected['types'], $actual['types'] ) ) {
+				return false;
+			}
+
+			foreach ( $expected['types'] as $type ) {
+				if ( is_string( $type ) && str_contains( $type, '&' ) ) {
+					return true;
+				}
+			}
+
+			return false;
+		},
+		'resolution' => fn( $expected, $actual ) => [ $actual ],
 	],
 	[
 		// Names in global tags are not resolved to their FQSEN.
@@ -434,12 +768,13 @@ $callable_baseline = [
 			return [ $expected ];
 		},
 	],
+	$deprecation_version_omitted,
 	[
 		// Old parser serializes raw AST for anonymous class constructor, new parser uses extends class name
 		'id' => 'old-parser-serializes-raw-ast-for-anonymous-class-constructor-new-parser-uses-extends-class-name',
 
 		'path'       => 'uses.methods[]',
-		'filter'     => fn( $expected, $actual ) => $expected !== null
+		'filter'     => fn( $expected, $actual ) => isset( $expected['name'], $expected['class'] )
 			&& $expected['name'] === '__construct'
 			&& is_array( $expected['class'] ),
 		'resolution' => function ( $expected, $actual ) {
@@ -453,7 +788,7 @@ $callable_baseline = [
 		'id' => 'this-name-produced-name-name',
 
 		'path'       => 'uses.methods[]',
-		'filter'     => fn( $expected ) => $expected !== null && is_array( $expected['name'] ),
+		'filter'     => fn( $expected ) => isset( $expected['name'] ) && is_array( $expected['name'] ),
 		'resolution' => function ( $expected, $actual ) {
 			$expected['name'] = $actual['name'];
 
@@ -502,6 +837,19 @@ $callable_baseline = [
 		},
 		'resolution' => fn( $expected, $actual ) => [ $actual ],
 	],
+	[
+		// Leading backslash differences
+		'id' => 'leading-backslash-differences',
+
+		'path'       => 'doc.{description|long_description}',
+		'filter'     => fn( $expected, $actual ) => is_string( $expected ) && is_string( $actual )
+			&& (
+				str_contains( $expected, '\\' ) && ! str_contains( $actual, '\\' )
+				|| ! str_contains( $expected, '\\' ) && str_contains( $actual, '\\' )
+			)
+			&& str_replace( '\\', '', $expected ) === str_replace( '\\', '', $actual ),
+		'resolution' => fn( $expected, $actual ) => [ $actual ],
+	],
 ];
 
 $numeric_notation_to_decimal = [
@@ -544,6 +892,14 @@ $numeric_notation_to_decimal = [
 
 return [
 	'class'    => [
+		[
+			// New parser does not include anonymous class definitions in the output.
+			// Old parser emitted them as 'class@anonymous'. Baseline accepts the omission.
+			'id' => 'new-parser-omits-anonymous-class-definitions',
+
+			'filter'     => fn( $expected, $actual ) => ( $expected['name'] ?? null ) === 'class@anonymous' && $actual === [],
+			'resolution' => fn( $expected, $actual ) => [ [], $actual ],
+		],
 		[
 			// Class start line changed due to attribute(s)
 			'id' => 'class-start-line-changed-due-to-attributes',
@@ -607,8 +963,50 @@ return [
 			'path' => 'properties[].default',
 		],
 		[
+			...$default_value_omitted,
+			'path' => 'properties[].default',
+		],
+		[
+			...$default_value_quoted_strings_stripped,
+			'path' => 'properties[].default',
+		],
+		[
+			...$default_value_comments_stripped,
+			'path' => 'properties[].default',
+		],
+		[
+			// Old parser uses short array syntax [] while new parser uses long array syntax array()
+			'id' => 'old-parser-uses-short-array-syntax-new-parser-uses-long-array-syntax',
+
+			'path'       => 'properties[].default',
+			'filter'     => fn( $expected, $actual ) => $expected !== null
+				&& $actual !== null
+				&& _array_short_to_long( $expected ) === $actual,
+			'resolution' => fn( $expected, $actual ) => [ $actual ],
+		],
+		[
 			...$invalid_type_syntax,
 			'path' => 'properties[].doc.tags[]',
+		],
+		[
+			// Old parser concatenated intersection types (&) into a single broken type string, new parser splits them correctly
+			'id' => 'old-parser-concatenated-intersection-types-into-single-type-string',
+
+			'path'       => 'properties[].doc.tags[]',
+			'filter'     => function ( $expected, $actual ) {
+				if ( ! isset( $expected['types'], $actual['types'] ) ) {
+					return false;
+				}
+
+				foreach ( $expected['types'] as $type ) {
+					if ( is_string( $type ) && str_contains( $type, '&' ) ) {
+						return true;
+					}
+				}
+
+				return false;
+			},
+			'resolution' => fn( $expected, $actual ) => [ $actual ],
 		],
 		[
 			// Null default value represented as empty string
@@ -623,8 +1021,18 @@ return [
 			'id' => 'phpdocumentor-normalizes-type-aliases-in-properties',
 
 			'path'       => 'properties[].doc.tags[].types[]',
-			'filter'     => fn( $expected, $actual ) => $expected !== null && isset( TYPE_ALIASES[ $expected ] ) && TYPE_ALIASES[ $expected ] === $actual,
+			'filter'     => fn( $expected, $actual ) => $expected !== null &&
+				isset( TYPE_ALIASES[ $expected ] ) &&
+				TYPE_ALIASES[ $expected ] === $actual,
 			'resolution' => fn( $expected, $actual ) => [ $actual ],
+		],
+		[
+			...$fully_qualified_type_in_types,
+			'path' => 'properties[].doc.tags[].types[]',
+		],
+		[
+			...$old_parser_namespaced_self_in_types,
+			'path' => 'properties[].doc.tags[].types[]',
 		],
 		[
 			...$normalize_whitespace_in_tags,
@@ -637,6 +1045,10 @@ return [
 		[
 			...$remove_redundant_parentheses,
 			'path' => 'properties[].doc.tags[].types[]',
+		],
+		[
+			...$fully_qualified_type_in_types,
+			'path' => 'doc.tags[].types[]',
 		],
 		[
 			...$string_literal_quote_normalization,
@@ -668,6 +1080,24 @@ return [
 		[
 			...$leading_backslash_in_refers,
 			'path' => 'properties[].doc.tags[]',
+		],
+		[
+			// New parser adds leading backslash to names in inline {@see} tags within descriptions.
+			// The old parser also sometimes omitted a space before the content in inline tags
+			// (e.g. {@parse_blocks()} vs {@parse_blocks ()}).
+			'id' => 'new-parser-adds-leading-backslash-in-refers',
+
+			'path'       => 'doc.{description|long_description}',
+			'filter'     => function ( $expected, $actual ) {
+				if ( ! is_string( $expected ) || ! is_string( $actual ) || $expected === $actual ) {
+					return false;
+				}
+				// Normalize: strip leading backslash in {@see \func} and normalize inline tag whitespace.
+				$normalize = fn( $s ) => _normalize_inline_tags( preg_replace( '/\{@see \\\\/', '{@see ', $s ) );
+
+				return $normalize( $expected ) === $normalize( $actual );
+			},
+			'resolution' => fn( $expected, $actual ) => [ $actual ],
 		],
 		[
 			...$inline_tag_whitespace,
@@ -711,9 +1141,43 @@ return [
 				return [ $expected, $actual ];
 			},
 		],
+		[
+			...$fully_qualified_type_in_types,
+			'path' => 'extends',
+		],
+		[
+			...$fully_qualified_type_in_types,
+			'path' => 'implements[]',
+		],
 	],
 	'hook'     => [
 		...$callable_baseline,
+		[
+			...$escape_double_quotes,
+			'path' => 'doc.{description|long_description}',
+		],
+		[
+			// Old parser incorrectly adds leading backslash to names in hook arguments
+			'id' => 'old-parser-incorrectly-adds-leading-backslash-to-names-in-hook-args',
+
+			'path'       => 'arguments[]',
+			'filter'     => fn( $expected, $actual ) => str_contains( $expected, '\\' )
+				&& ! str_contains( $actual, '\\' )
+				&& str_replace( '\\', '', $expected ) === str_replace( '\\', '', $actual ),
+			'resolution' => fn( $expected, $actual ) => [ $actual ],
+		],
+		[
+			// Old parser incorrectly adds leading backslash before global function calls in hook arguments
+			// e.g. \trim( ... ) instead of trim( ... ). Differs from the above when $actual also contains backslashes.
+			'id' => 'old-parser-incorrectly-adds-leading-backslash-before-global-function-calls-in-hook-args',
+
+			'path'       => 'arguments[]',
+			'filter'     => fn( $expected, $actual ) => is_string( $expected )
+				&& is_string( $actual )
+				&& $expected !== $actual
+				&& preg_replace( '/\\\\(?=[a-zA-Z_]\w*\()/', '', $expected ) === $actual,
+			'resolution' => fn( $expected, $actual ) => [ $actual ],
+		],
 		[
 			// Old parser double-escapes backslashes in hook arguments
 			'id' => 'old-parser-double-escapes-backslashes-in-hook-arguments',
@@ -757,7 +1221,50 @@ return [
 		],
 	],
 	'method'   => [
+		[
+			// Old parser missed all uses in WP_Block methods; new parser correctly finds them.
+			'id'     => 'old-parser-missed-uses-in-wp-block-methods',
+			'method' => fn( $name ) => str_starts_with( $name, 'WP_Block::' ),
+
+			'path'       => 'uses',
+			'filter'     => fn( $expected, $actual ) => ( $expected === null || $expected === [] )
+				&& is_array( $actual ) && ! empty( $actual ),
+			'resolution' => fn( $expected, $actual ) => [ $actual ],
+		],
+		[
+			// New parser does not include anonymous class definitions, so their methods are also absent.
+			// Old parser emitted them under 'class@anonymous'. Baseline accepts the omission.
+			'id'     => 'new-parser-omits-anonymous-class-method-definitions',
+			'method' => fn( $name ) => str_starts_with( $name, 'class@anonymous::' ),
+
+			'filter'     => fn( $expected, $actual ) => $actual === [],
+			'resolution' => fn( $expected, $actual ) => [ [], $actual ],
+		],
+		[
+			// Old parser source patch replaced ( $this->prop )( $args ) with call_user_func( $this->prop, $args )
+			// to avoid aborting on that syntax. New parser correctly records the callable expression.
+			'id'     => 'old-parser-source-patch-replaced-callable-property-invocation-with-call-user-func',
+			'method' => [
+				'WP_HTML_Open_Elements::after_element_push',
+				'WP_HTML_Open_Elements::after_element_pop',
+			],
+
+			'path'       => 'uses.functions[]',
+			'filter'     => fn( $expected, $actual ) => ( $expected['name'] ?? null ) === 'call_user_func'
+				&& str_starts_with( $actual['name'] ?? '', '$this->' ),
+			'resolution' => fn( $expected, $actual ) => [ $actual ],
+		],
 		...$callable_baseline,
+		$method_uses_class_fully_qualified_name,
+		$method_uses_class_resolves_to_classname,
+		[
+			...$escape_double_quotes,
+			'path' => 'doc.{description|long_description}',
+		],
+		[
+			...$fully_qualified_type_in_types,
+			'path' => 'aliases[]',
+		],
 		[
 			// Conditional class definition - parser finds first declaration
 			'id' => 'conditional-class-definition---parser-finds-first-declaration',
@@ -776,7 +1283,7 @@ return [
 			// Old parser did not parse docblock for methods with attributes
 			'id' => 'old-parser-did-not-parse-docblock-for-methods-with-attributes',
 
-			'filter'     => fn( $expected, $actual ) => $expected !== null
+			'filter'     => fn( $expected, $actual ) => isset( $expected['line'], $actual['line'] )
 				&& $expected['line'] === $actual['line'] + 1
 				&& $expected['doc'] !== $actual['doc'],
 			'resolution' => function ( $expected, $actual ) {
@@ -792,7 +1299,7 @@ return [
 
 			'method'     => [ 'Registry::get_class', 'Registry::create' ],
 			'path'       => 'doc.tags[]',
-			'filter'     => fn( $tag ) => $tag['name'] === 'template',
+			'filter'     => fn( $tag ) => ( $tag['name'] ?? null ) === 'template',
 			'resolution' => fn( $expected, $actual ) => [ $actual ],
 		],
 		[
@@ -830,6 +1337,16 @@ return [
 	],
 	'function' => [
 		... $callable_baseline,
+		$method_uses_class_fully_qualified_name,
+		$method_uses_class_resolves_to_classname,
+		[
+			...$fully_qualified_type_in_types,
+			'path' => 'aliases[]',
+		],
+		[
+			...$escape_double_quotes,
+			'path' => 'doc.{description|long_description}',
+		],
 		[
 			// Conditional function definition - parser finds first declaration
 			'id' => 'conditional-function-definition---parser-finds-first-declaration',
@@ -890,8 +1407,18 @@ return [
 		],
 	],
 	'file'     => [
+		$method_uses_class_fully_qualified_name,
+		$method_uses_class_resolves_to_classname,
+		[
+			...$escape_double_quotes,
+			'path' => 'file.{description|long_description}',
+		],
 		[
 			...$numeric_notation_to_decimal,
+			'path' => 'constants[].value',
+		],
+		[
+			...$default_value_quoted_strings_stripped,
 			'path' => 'constants[].value',
 		],
 		[
@@ -900,45 +1427,33 @@ return [
 
 			'path'       => 'constants[].value',
 			'filter'     => fn( $expected, $actual ) => $expected !== null
-				&& str_starts_with( $expected, '\\' )
-				&& ltrim( $expected, '\\' ) === $actual,
+				&& str_replace( '\\', '', $expected ) === str_replace( '\\', '', $actual ),
 			'resolution' => fn( $expected, $actual ) => [ $actual ],
 		],
 		[
-			// Old parses omits uses
-			'id' => 'old-parses-omits-uses',
+			// Old parser produces empty const names
+			'id' => 'old-parser-produces-empty-const-names',
 
-			'file'       => [
-				'wp-includes/SimplePie/src/Cache/Base.php',
-				'wp-includes/SimplePie/src/HTTP/Parser.php',
-				'wp-includes/SimplePie/src/Net/IPv6.php',
-				'wp-includes/SimplePie/src/XML/Declaration/Parser.php',
-				'wp-includes/SimplePie/src/Author.php',
-				'wp-includes/SimplePie/src/Caption.php',
-				'wp-includes/SimplePie/src/Category.php',
-				'wp-includes/SimplePie/src/Copyright.php',
-				'wp-includes/SimplePie/src/Credit.php',
-				'wp-includes/SimplePie/src/Enclosure.php',
-				'wp-includes/SimplePie/src/File.php',
-				'wp-includes/SimplePie/src/IRI.php',
-				'wp-includes/SimplePie/src/Locator.php',
-				'wp-includes/SimplePie/src/Misc.php',
-				'wp-includes/SimplePie/src/Parser.php',
-				'wp-includes/SimplePie/src/Rating.php',
-				'wp-includes/SimplePie/src/Restriction.php',
-				'wp-includes/SimplePie/src/Sanitize.php',
-				'wp-includes/SimplePie/src/SimplePie.php',
-			],
-			'path'       => 'uses',
-			'resolution' => function ( $expected, $actual ) {
-				_baseline_assert(
-					$expected === null,
-					'Expected null uses from old parser, got: ' . json_encode( $expected )
-				);
-
-				return [ $actual ];
-			},
+			'path'       => 'constants[].name',
+			'filter'     => fn( $expected, $actual ) => $expected === '',
+			'resolution' => fn( $expected, $actual ) => [ $actual ],
 		],
+		[
+			'id' => 'old-parser-breaks-off-value-at-quotes',
+
+			'path'       => 'constants[].value',
+			'filter'     => fn( $expected, $actual ) => $actual !== null
+				&& (
+					str_contains( $actual, "'" )
+					&& substr( $actual, 0, strpos( $actual, "'" ) ) === $expected
+				)
+				|| (
+					str_contains( $actual, '"' )
+					&& substr( $actual, 0, strpos( $actual, '"' ) ) === $expected
+				),
+			'resolution' => fn( $expected, $actual ) => [ $actual ],
+		],
+		$deprecation_version_omitted,
 		[
 			// Old parser did not parse file-level docblock, it belongs to function
 			'id' => 'old-parser-did-not-parse-file-level-docblock-it-belongs-to-function',
