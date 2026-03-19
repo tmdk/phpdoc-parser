@@ -17,12 +17,12 @@ use phpDocumentor\Reflection\DocBlock\Tags\Link;
 use phpDocumentor\Reflection\DocBlock\Tags\Since;
 use phpDocumentor\Reflection\DocBlock\Tags\TagWithType;
 use phpDocumentor\Reflection\DocBlock\Tags\Template;
-use phpDocumentor\Reflection\DocBlock\Tags\Uses;
 use phpDocumentor\Reflection\DocBlock\Tags\Version;
 use WP_Parser\Formatter\Docblock_Description_Formatter;
-use WP_Parser\Formatter\Inline_Tag_Formatter;
+use WP_Parser\Formatter\Type_Pretty_Printer;
 use WP_Parser\Reflection\Docblock_Tag;
-use WP_Parser\Tag\Legacy_See_Tag;
+use WP_Parser\Tag\See_Tag;
+use WP_Parser\Tag\Uses_Tag;
 
 /**
  * Class Docblock_Tag_Factory
@@ -37,7 +37,6 @@ class Docblock_Tag_Factory {
 			normalize_newlines: true,
 			join_lines: true,
 		);
-		$this->description_formatter->set_tag_formatter( new Inline_Tag_Formatter() );
 	}
 
 	public function create( Tag $tag ): Docblock_Tag {
@@ -62,13 +61,13 @@ class Docblock_Tag_Factory {
 			case $tag instanceof Link:
 				$doc_tag = $this->from_link_tag( $tag );
 				break;
-			case $tag instanceof Legacy_See_Tag:
+			case $tag instanceof See_Tag:
 				$doc_tag = $this->from_see_tag( $tag );
 				break;
 			case $tag instanceof InvalidTag && $tag->getName() === 'see':
 				$doc_tag = $this->from_invalid_see_tag( $tag );
 				break;
-			case $tag instanceof Uses:
+			case $tag instanceof Uses_Tag:
 				$doc_tag = $this->from_uses_tag( $tag );
 				break;
 			case $tag instanceof InvalidTag && $tag->getName() === 'uses':
@@ -178,11 +177,11 @@ class Docblock_Tag_Factory {
 		return $doc_tag;
 	}
 
-	private function from_see_tag( Legacy_See_Tag $tag ): Docblock_Tag {
+	private function from_see_tag( See_Tag $tag ): Docblock_Tag {
 		$doc_tag = new Docblock_Tag();
 
 		$doc_tag->set_content( $this->get_description( $tag ) );
-		$doc_tag->set_reference( $tag->getReference() );
+		$doc_tag->set_reference( $tag->get_reference() );
 
 		return $doc_tag;
 	}
@@ -195,11 +194,11 @@ class Docblock_Tag_Factory {
 		return $doc_tag;
 	}
 
-	private function from_uses_tag( Uses $tag ): Docblock_Tag {
+	private function from_uses_tag( Uses_Tag $tag ): Docblock_Tag {
 		$doc_tag = new Docblock_Tag();
 
 		$doc_tag->set_content( $this->get_description( $tag ) );
-		$doc_tag->set_reference( $tag->getReference() );
+		$doc_tag->set_reference( $tag->get_reference() );
 
 		return $doc_tag;
 	}

@@ -31,11 +31,11 @@ use phpDocumentor\Reflection\DocBlock\Tags\Factory\VarFactory;
 use phpDocumentor\Reflection\DocBlock\Tags\Generic;
 use phpDocumentor\Reflection\DocBlock\Tags\InvalidTag;
 use phpDocumentor\Reflection\DocBlock\Tags\Link as LinkTag;
-use phpDocumentor\Reflection\DocBlock\Tags\See as SeeTag;
 use phpDocumentor\Reflection\DocBlock\Tags\Since;
 use phpDocumentor\Reflection\DocBlock\Tags\Source;
-use phpDocumentor\Reflection\DocBlock\Tags\Uses;
 use phpDocumentor\Reflection\DocBlock\Tags\Version;
+use WP_Parser\Tag\See_Tag;
+use WP_Parser\Tag\Uses_Tag;
 use phpDocumentor\Reflection\FqsenResolver;
 use phpDocumentor\Reflection\TypeResolver;
 use phpDocumentor\Reflection\Types\Context as TypeContext;
@@ -70,10 +70,10 @@ class Standard_Tag_Factory implements TagFactory {
 		'covers'     => Covers::class,
 		'deprecated' => Deprecated::class,
 		'link'       => LinkTag::class,
-		'see'        => SeeTag::class,
+		'see'        => See_Tag::class,
 		'since'      => Since::class,
 		'source'     => Source::class,
-		'uses'       => Uses::class,
+		'uses'       => Uses_Tag::class,
 		'version'    => Version::class,
 	];
 

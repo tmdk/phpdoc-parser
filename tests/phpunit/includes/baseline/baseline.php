@@ -264,6 +264,38 @@ $leading_backslash_in_refers = [
 	},
 ];
 
+$see_refers_trailing_punct_stripped = [
+	// New reference parser strips trailing punctuation (,;:) from refers.
+	// Old parser preserved it verbatim, e.g. "get_column_headers()," or "SMTP::DEBUG_OFF:".
+	'id' => 'new-parser-strips-trailing-punctuation-from-refers',
+
+	'filter'     => fn( $expected, $actual ) => $expected !== null
+		&& isset( $expected['refers'], $actual['refers'] )
+		&& $expected['refers'] !== $actual['refers']
+		&& rtrim( $expected['refers'], ',:;' ) === $actual['refers'],
+	'resolution' => function ( $expected, $actual ) {
+		$expected['refers'] = $actual['refers'];
+
+		return [ $expected, $actual ];
+	},
+];
+
+$see_double_at_see_stripped = [
+	// "@see @see func()" — old parser stored the inner "@see" token as the refers value.
+	// New parser strips the redundant prefix and resolves the actual reference, producing refers=''.
+	'id' => 'new-parser-strips-double-at-see-prefix-in-refers',
+
+	'filter'     => fn( $expected, $actual ) => $expected !== null
+		&& isset( $expected['refers'], $actual['refers'] )
+		&& $expected['refers'] === '@see'
+		&& $actual['refers'] === '',
+	'resolution' => function ( $expected, $actual ) {
+		$expected['refers'] = $actual['refers'];
+
+		return [ $expected, $actual ];
+	},
+];
+
 $escape_double_quotes = [
 	// new parser escapes double quotes
 	'id' => 'new-parser-escapes-double-quotes',
@@ -359,6 +391,14 @@ $callable_baseline = [
 	],
 	[
 		...$leading_backslash_in_refers,
+		'path' => 'doc.tags[]',
+	],
+	[
+		...$see_refers_trailing_punct_stripped,
+		'path' => 'doc.tags[]',
+	],
+	[
+		...$see_double_at_see_stripped,
 		'path' => 'doc.tags[]',
 	],
 	[
@@ -1082,6 +1122,14 @@ return [
 			'path' => 'properties[].doc.tags[]',
 		],
 		[
+			...$see_refers_trailing_punct_stripped,
+			'path' => 'properties[].doc.tags[]',
+		],
+		[
+			...$see_double_at_see_stripped,
+			'path' => 'properties[].doc.tags[]',
+		],
+		[
 			// New parser adds leading backslash to names in inline {@see} tags within descriptions.
 			// The old parser also sometimes omitted a space before the content in inline tags
 			// (e.g. {@parse_blocks()} vs {@parse_blocks ()}).
@@ -1101,6 +1149,18 @@ return [
 		],
 		[
 			...$inline_tag_whitespace,
+		],
+		[
+			...$leading_backslash_in_refers,
+			'path' => 'doc.tags[]',
+		],
+		[
+			...$see_refers_trailing_punct_stripped,
+			'path' => 'doc.tags[]',
+		],
+		[
+			...$see_double_at_see_stripped,
+			'path' => 'doc.tags[]',
 		],
 		[
 			// @extends tag content differs between old and new parser
@@ -1316,6 +1376,10 @@ return [
 
 				return [ $actual ];
 			},
+		],
+		[
+			...$leading_backslash_in_refers,
+			'path' => 'doc.tags[]',
 		],
 		[
 			...$numeric_notation_to_decimal,

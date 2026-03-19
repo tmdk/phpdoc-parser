@@ -436,6 +436,43 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 		$this->assertArrayPathEquals( $func, 'doc.tags.4.refers', 'wp_nav_menu()' );
 	}
 
+	public function test_phpdoc_see_references_chained_method() {
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * @see get_current_screen()->add_help_tab()
+			 * @see get_current_screen()->remove_help_tab()
+			 */
+			function func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'func' );
+		$this->assertArrayPathEquals( $func, 'doc.tags.0.refers', 'get_current_screen()->add_help_tab()' );
+		$this->assertArrayPathEquals( $func, 'doc.tags.1.refers', 'get_current_screen()->remove_help_tab()' );
+	}
+
+	public function test_phpdoc_see_references_self() {
+		$data = $this->parse_string(
+			<<<'PHP'
+			class Foo {
+				/**
+				 * @see self::$var
+				 * @see self::CONST
+				 * @see self::method()
+				 */
+				public function bar() {}
+			}
+			PHP
+		);
+
+		$class  = $this->find_entity_data_in( $data, 'classes', 'Foo' );
+		$method = $this->find_entity_data_in( $class, 'methods', 'bar' );
+		$this->assertArrayPathEquals( $method, 'doc.tags.0.refers', 'self::$var' );
+		$this->assertArrayPathEquals( $method, 'doc.tags.1.refers', 'self::CONST' );
+		$this->assertArrayPathEquals( $method, 'doc.tags.2.refers', 'self::method()' );
+	}
+
 	public function test_hook_doc_param_types_global_ns() {
 		$global_ns = $this->parse_string(
 			<<<'PHP'

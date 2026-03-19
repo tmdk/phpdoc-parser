@@ -7,8 +7,10 @@
 
 namespace WP_Parser\Reflection;
 
+use phpDocumentor\Reflection\Fqsen;
 use phpDocumentor\Reflection\Type;
 use WP_Parser\Attributes\Serialized_Name;
+use WP_Parser\Reference\Reference;
 
 /**
  * Represents a docblock tag.
@@ -30,7 +32,7 @@ class Docblock_Tag {
 	private ?string $description = null;
 
 	#[Serialized_Name( 'refers' )]
-	private ?string $reference = null;
+	private string|Fqsen|Reference|null $reference = null;
 
 	#[Serialized_Name( 'link' )]
 	private ?string $link = null;
@@ -95,11 +97,11 @@ class Docblock_Tag {
 	/**
 	 * Set the reference.
 	 *
-	 * @param string $reference
+	 * @param string|Fqsen|Reference $reference
 	 *
 	 * @return void
 	 */
-	public function set_reference( string $reference ): void {
+	public function set_reference( string|Fqsen|Reference $reference ): void {
 		$this->reference = $reference;
 	}
 
@@ -143,9 +145,9 @@ class Docblock_Tag {
 	}
 
 	/**
-	 * @return string|null
+	 * @return string|Fqsen|Reference|null
 	 */
-	public function get_reference(): ?string {
+	public function get_reference(): string|Fqsen|Reference|null {
 		return $this->reference;
 	}
 

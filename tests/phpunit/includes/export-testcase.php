@@ -107,13 +107,30 @@ class Export_UnitTestCase extends \WP_UnitTestCase {
 	}
 
 	protected function assertArrayPathEquals( array $array, string $path, $expected ): void {
-		$keys  = explode( '.', $path );
-		$value = &$array;
+		$keys        = explode( '.', $path );
+		$path_exists = true;
+
+		$traversed = [];
+		$key       = null;
+		$value     = &$array;
+
 		foreach ( $keys as $key ) {
-			if ( ! isset( $value[ $key ] ) ) {
-				$this->fail( "Array does not contain path $path" );
+			if ( ! key_exists( $key, $value ) ) {
+				$path_exists = false;
+				break;
 			}
-			$value = &$value[ $key ];
+
+			$value       = &$value[ $key ];
+			$traversed[] = $key;
+		}
+
+		if ( ! $path_exists ) {
+			$key_description = ctype_digit( $key ) ? "index $key" : "key \"$key\"";
+			$this->fail(
+				"Array does not contain path $path: no $key_description in " .
+				( $traversed ? implode( '.', $traversed ) : 'array' ) . ":\n" .
+				json_encode( $value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES )
+			);
 		}
 
 		$this->assertEquals( $expected, $value );
