@@ -62,6 +62,22 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 		$this->assertArrayPathEquals( $func, 'arguments.0.type', '\WP_Post' );
 	}
 
+	public function test_php_parameter_types_group_use_import() {
+		$non_global_ns = $this->parse_string(
+			<<<'PHP'
+			namespace My_Plugin;
+			use Vendor\Package\{ClassA, ClassB, ClassC};
+			function func( ClassA $a, ClassB $b, ClassC $c ) {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $non_global_ns, 'functions', 'func' );
+		$this->assertIsArray( $func );
+		$this->assertArrayPathEquals( $func, 'arguments.0.type', '\Vendor\Package\ClassA' );
+		$this->assertArrayPathEquals( $func, 'arguments.1.type', '\Vendor\Package\ClassB' );
+		$this->assertArrayPathEquals( $func, 'arguments.2.type', '\Vendor\Package\ClassC' );
+	}
+
 	public function test_php_param_defaults_global_ns() {
 		$global_ns = $this->parse_string(
 			<<<'PHP'
