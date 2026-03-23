@@ -32,14 +32,12 @@ class Docblock_Description_Formatter {
 	 * @param bool|string $markdown Parse markdown. If "inline" is passed, parse inline markdown.
 	 * @param bool        $normalize_newlines Normalize newlines.
 	 * @param bool        $join_lines Convert newlines into spaces.
-	 * @param bool        $normalize_spaces Reduce multiple consecutive spaces to a single space.
 	 */
 	public function __construct(
 		private bool $wrap_code_in_pre = false,
 		private bool|string $markdown = false,
 		private bool $normalize_newlines = false,
 		private bool $join_lines = false,
-		private bool $normalize_spaces = false
 	) {
 		if ( $this->markdown ) {
 			$this->parsedown = \Parsedown::instance();
@@ -53,7 +51,6 @@ class Docblock_Description_Formatter {
 	 * @param bool|string $markdown Parse markdown. If "inline" is passed, parse inline markdown.
 	 * @param bool        $normalize_newlines Normalize newlines.
 	 * @param bool        $join_lines Convert newlines into spaces.
-	 * @param bool        $normalize_spaces Reduce multiple consecutive spaces to a single space.
 	 *
 	 * @return self
 	 */
@@ -62,9 +59,8 @@ class Docblock_Description_Formatter {
 		bool|string $markdown = false,
 		bool $normalize_newlines = false,
 		bool $join_lines = false,
-		bool $normalize_spaces = false
 	): self {
-		return new self( $wrap_code_in_pre, $markdown, $normalize_newlines, $join_lines, $normalize_spaces );
+		return new self( $wrap_code_in_pre, $markdown, $normalize_newlines, $join_lines );
 	}
 
 	/**
@@ -91,10 +87,6 @@ class Docblock_Description_Formatter {
 
 		if ( $this->join_lines ) {
 			$description = $this->join_lines( $description );
-		}
-
-		if ( $this->normalize_spaces ) {
-			$description = $this->normalize_spaces( $description );
 		}
 
 		return $description;
@@ -217,19 +209,6 @@ class Docblock_Description_Formatter {
 		}
 
 		return $description;
-	}
-
-	/**
-	 * Reduce multiple consecutive spaces to a single space.
-	 *
-	 * @param string $description
-	 *
-	 * @return string
-	 */
-	private function normalize_spaces( string $description ): string {
-		$description = preg_replace( '/ {2,}/', ' ', $description );
-
-		return preg_replace( '/(?<=<br>) ++/', '', $description );
 	}
 
 }
