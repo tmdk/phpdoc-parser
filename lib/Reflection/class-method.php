@@ -175,17 +175,6 @@ class Method implements Has_Uses, Has_Hooks {
 		$this->doc_block = $doc_block;
 	}
 
-	/**
-	 * Set the uses.
-	 *
-	 * @param Uses|null $uses
-	 *
-	 * @return void
-	 */
-	public function set_uses( ?Uses $uses ): void {
-		$this->uses = $uses;
-	}
-
 	public function get_uses(): ?Uses {
 		return $this->uses;
 	}

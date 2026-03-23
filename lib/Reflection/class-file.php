@@ -124,10 +124,6 @@ class File implements Has_Uses, Has_Hooks {
 		$this->uses->add_method( $method_call );
 	}
 
-	public function set_uses( ?Uses $uses ): void {
-		$this->uses = $uses;
-	}
-
 	public function add_constant( Constant $constant ): void {
 		$this->constants[] = $constant;
 	}
