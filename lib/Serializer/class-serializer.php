@@ -20,7 +20,6 @@ class Serializer implements Serializer_Interface {
 		$this->serializers[] = new Templated_String_Serializer();
 		$this->serializers[] = new Type_Serializer();
 		$this->serializers[] = new Reference_Serializer();
-		$this->serializers[] = new Fqsen_Serializer();
 		$this->serializers[] = new Docblock_Tag_Serializer( $object_serializer );
 		$this->serializers[] = new Method_Serializer( $object_serializer );
 		$this->serializers[] = new Uses_Serializer( $this );
@@ -51,7 +50,6 @@ class Serializer implements Serializer_Interface {
 
 		throw new \RuntimeException( 'No serializer found for ' . get_debug_type( $value ) );
 	}
-
 
 	public function supports( mixed $value ): bool {
 		return true;

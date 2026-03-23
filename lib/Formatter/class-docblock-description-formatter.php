@@ -232,8 +232,4 @@ class Docblock_Description_Formatter {
 		return preg_replace( '/(?<=<br>) ++/', '', $description );
 	}
 
-	public function set_tag_formatter( ?Formatter $tag_formatter ): void {
-		$this->tag_formatter = $tag_formatter;
-	}
-
 }
