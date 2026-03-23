@@ -40,7 +40,8 @@ class Object_Serializer implements Serializer_Interface {
 			}
 
 			$prop_key   = $name_attr->name;
-			$prop_value = $property->getValue( $value );
+			$getter     = $this->resolve_getter( $property );
+			$prop_value = $value->$getter();
 
 			if ( $prop_value === null ) {
 				if ( $allow_null_attr ) {
@@ -53,6 +54,17 @@ class Object_Serializer implements Serializer_Interface {
 		}
 
 		return $result;
+	}
+
+	private function resolve_getter( \ReflectionProperty $property ): string {
+		$name = $property->getName();
+		$type = $property->getType();
+
+		if ( $type instanceof \ReflectionNamedType && $type->getName() === 'bool' ) {
+			return 'is_' . $name;
+		}
+
+		return 'get_' . $name;
 	}
 
 	private function get_attribute( \ReflectionProperty $property, string $attribute_class ): ?object {

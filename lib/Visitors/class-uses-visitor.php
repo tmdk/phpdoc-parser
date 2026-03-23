@@ -37,7 +37,7 @@ class Uses_Visitor extends Scope_Aware_Visitor {
 		if ( $node instanceof Node\Expr\FuncCall ) {
 			$function_call = $this->function_call_factory->create( $node );
 
-			$current_scope->get_uses()->add_function( $function_call );
+			$current_scope->add_function_use( $function_call );
 		}
 
 		// Track static method calls (including constructor calls)
@@ -48,7 +48,7 @@ class Uses_Visitor extends Scope_Aware_Visitor {
 			$method_call = $this->method_call_factory->create( $node, $this->scope );
 
 			if ( $method_call ) {
-				$current_scope->get_uses()->add_method( $method_call );
+				$current_scope->add_method_use( $method_call );
 			}
 		}
 

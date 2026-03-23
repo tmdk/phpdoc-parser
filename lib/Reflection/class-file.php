@@ -110,8 +110,18 @@ class File implements Has_Uses, Has_Hooks {
 		$this->includes[] = $include;
 	}
 
-	public function get_uses(): Uses {
-		return $this->uses ??= new Uses();
+	public function get_uses(): ?Uses {
+		return $this->uses;
+	}
+
+	public function add_function_use( Function_Call $function_call ): void {
+		$this->uses ??= new Uses();
+		$this->uses->add_function( $function_call );
+	}
+
+	public function add_method_use( Method_Call $method_call ): void {
+		$this->uses ??= new Uses();
+		$this->uses->add_method( $method_call );
 	}
 
 	public function set_uses( ?Uses $uses ): void {
@@ -124,5 +134,37 @@ class File implements Has_Uses, Has_Hooks {
 
 	public function add_hook( Hook $hook ): void {
 		$this->hooks[] = $hook;
+	}
+
+	public function get_doc_block(): ?DocBlock {
+		return $this->doc_block;
+	}
+
+	public function get_path(): string {
+		return $this->path;
+	}
+
+	public function get_root(): string {
+		return $this->root;
+	}
+
+	public function get_includes(): ?array {
+		return $this->includes;
+	}
+
+	public function get_constants(): ?array {
+		return $this->constants;
+	}
+
+	public function get_hooks(): ?array {
+		return $this->hooks;
+	}
+
+	public function get_functions(): ?array {
+		return $this->functions;
+	}
+
+	public function get_classes(): ?array {
+		return $this->classes;
 	}
 }

@@ -57,4 +57,16 @@ class Param {
 	public function set_default( string|Templated_String $default ): void {
 		$this->default = $default;
 	}
+
+	public function get_name(): string {
+		return $this->name;
+	}
+
+	public function get_default(): string|Templated_String|null {
+		return $this->default;
+	}
+
+	public function get_type(): string|Templated_String {
+		return $this->type;
+	}
 }

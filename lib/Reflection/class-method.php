@@ -186,13 +186,18 @@ class Method implements Has_Uses, Has_Hooks {
 		$this->uses = $uses;
 	}
 
-	/**
-	 * Get or create the Uses object.
-	 *
-	 * @return Uses
-	 */
-	public function get_uses(): Uses {
-		return $this->uses ??= new Uses();
+	public function get_uses(): ?Uses {
+		return $this->uses;
+	}
+
+	public function add_function_use( Function_Call $function_call ): void {
+		$this->uses ??= new Uses();
+		$this->uses->add_function( $function_call );
+	}
+
+	public function add_method_use( Method_Call $method_call ): void {
+		$this->uses ??= new Uses();
+		$this->uses->add_method( $method_call );
 	}
 
 	/**
@@ -204,5 +209,53 @@ class Method implements Has_Uses, Has_Hooks {
 	 */
 	public function add_hook( Hook $hook ): void {
 		$this->hooks[] = $hook;
+	}
+
+	public function get_name(): string {
+		return $this->name;
+	}
+
+	public function get_namespace(): string {
+		return $this->namespace;
+	}
+
+	public function get_aliases(): array {
+		return $this->aliases;
+	}
+
+	public function get_line(): int {
+		return $this->line;
+	}
+
+	public function get_end_line(): int {
+		return $this->end_line;
+	}
+
+	public function is_final(): bool {
+		return $this->final;
+	}
+
+	public function is_abstract(): bool {
+		return $this->abstract;
+	}
+
+	public function is_static(): bool {
+		return $this->static;
+	}
+
+	public function get_visibility(): string {
+		return $this->visibility;
+	}
+
+	public function get_arguments(): array {
+		return $this->arguments;
+	}
+
+	public function get_doc_block(): ?DocBlock {
+		return $this->doc_block;
+	}
+
+	public function get_hooks(): ?array {
+		return $this->hooks;
 	}
 }

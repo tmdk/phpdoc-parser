@@ -101,4 +101,28 @@ class Hook {
 	public function set_doc_block( ?DocBlock $doc_block ): void {
 		$this->doc_block = $doc_block;
 	}
+
+	public function get_name(): string {
+		return $this->name;
+	}
+
+	public function get_line(): int {
+		return $this->line;
+	}
+
+	public function get_end_line(): int {
+		return $this->end_line;
+	}
+
+	public function get_type(): string {
+		return $this->type;
+	}
+
+	public function get_arguments(): array {
+		return $this->arguments;
+	}
+
+	public function get_doc_block(): ?DocBlock {
+		return $this->doc_block;
+	}
 }

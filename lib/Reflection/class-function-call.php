@@ -72,4 +72,15 @@ class Function_Call {
 		$this->deprecation_version = $deprecation_version;
 	}
 
+	public function get_name(): string {
+		return $this->name;
+	}
+
+	public function get_line(): int {
+		return $this->line;
+	}
+
+	public function get_end_line(): int {
+		return $this->end_line;
+	}
 }

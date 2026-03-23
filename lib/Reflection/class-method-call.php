@@ -83,4 +83,24 @@ class Method_Call {
 	public function set_end_line( int $end_line ): void {
 		$this->end_line = $end_line;
 	}
+
+	public function get_name(): ?string {
+		return $this->name;
+	}
+
+	public function get_class(): string|Templated_String|null {
+		return $this->class;
+	}
+
+	public function is_static(): ?bool {
+		return $this->static;
+	}
+
+	public function get_line(): ?int {
+		return $this->line;
+	}
+
+	public function get_end_line(): ?int {
+		return $this->end_line;
+	}
 }

@@ -53,4 +53,16 @@ class DocBlock {
 	public function set_tags( array $tags ): void {
 		$this->tags = $tags;
 	}
+
+	public function get_description(): string {
+		return $this->description;
+	}
+
+	public function get_long_description(): string {
+		return $this->long_description;
+	}
+
+	public function get_tags(): array {
+		return $this->tags;
+	}
 }
