@@ -9,5 +9,5 @@ elif [ "$(docker container inspect -f '{{.State.Running}}' phpdoc-parser-tests)"
     docker start phpdoc-parser-tests
 fi
 
-sed "s/WORDPRESS_DB_HOST=127.0.0.1/WORDPRESS_DB_HOST=$(docker port phpdoc-parser-tests 3306)/" .env.example > .env
+sed "s/WORDPRESS_DB_HOST=.*/WORDPRESS_DB_HOST=$(docker port phpdoc-parser-tests 3306)/" .env.example > .env
 
