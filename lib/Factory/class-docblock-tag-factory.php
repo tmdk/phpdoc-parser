@@ -20,6 +20,7 @@ use phpDocumentor\Reflection\DocBlock\Tags\Template;
 use phpDocumentor\Reflection\DocBlock\Tags\Version;
 use WP_Parser\Formatter\Docblock_Description_Formatter;
 use WP_Parser\Reflection\Docblock_Tag;
+use WP_Parser\Tag\Global_Tag;
 use WP_Parser\Tag\See_Tag;
 use WP_Parser\Tag\Uses_Tag;
 
@@ -59,6 +60,9 @@ class Docblock_Tag_Factory {
 				break;
 			case $tag instanceof Uses_Tag:
 				$doc_tag = $this->from_uses_tag( $tag );
+				break;
+			case $tag instanceof Global_Tag:
+				$doc_tag = $this->from_global_tag( $tag );
 				break;
 			case $tag instanceof Template:
 				$doc_tag = $this->from_template_tag( $tag );
@@ -165,6 +169,22 @@ class Docblock_Tag_Factory {
 
 		$doc_tag->set_content( $this->get_description( $tag ) );
 		$doc_tag->set_reference( $tag->get_reference() );
+
+		return $doc_tag;
+	}
+
+	private function from_global_tag( Global_Tag $tag ): Docblock_Tag {
+		$doc_tag = new Docblock_Tag();
+
+		if ( $tag->getType() ) {
+			$doc_tag->set_type( $tag->getType() );
+		}
+
+		if ( $tag->get_variable() ) {
+			$doc_tag->set_variable( $tag->get_variable() );
+		}
+
+		$doc_tag->set_content( $this->get_description( $tag ) );
 
 		return $doc_tag;
 	}

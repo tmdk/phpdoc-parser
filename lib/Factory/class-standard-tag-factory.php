@@ -34,6 +34,7 @@ use phpDocumentor\Reflection\DocBlock\Tags\Link as LinkTag;
 use phpDocumentor\Reflection\DocBlock\Tags\Since;
 use phpDocumentor\Reflection\DocBlock\Tags\Source;
 use phpDocumentor\Reflection\DocBlock\Tags\Version;
+use WP_Parser\Tag\Global_Tag;
 use WP_Parser\Tag\See_Tag;
 use WP_Parser\Tag\Uses_Tag;
 use phpDocumentor\Reflection\FqsenResolver;
@@ -70,6 +71,7 @@ class Standard_Tag_Factory implements TagFactory {
 		'covers'     => Covers::class,
 		'deprecated' => Deprecated::class,
 		'link'       => LinkTag::class,
+		'global'     => Global_Tag::class,
 		'see'        => See_Tag::class,
 		'since'      => Since::class,
 		'source'     => Source::class,

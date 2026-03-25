@@ -374,7 +374,6 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 	}
 
 	public function test_phpdoc_global_types() {
-		$this->markTestSkipped( 'Todo' );
 		$data = $this->parse_string(
 			<<<'PHP'
 			/**
@@ -386,8 +385,10 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 		);
 
 		$func = $this->find_entity_data_in( $data, 'functions', 'func' );
-		$this->assertArrayPathEquals( $func, 'doc.tags.0.content', '\WP_Locale $locale' );
-		$this->assertArrayPathEquals( $func, 'doc.tags.1.content', '\My_Plugin\Options $opts' );
+		$this->assertArrayPathEquals( $func, 'doc.tags.0.types', [ '\WP_Locale' ] );
+		$this->assertArrayPathEquals( $func, 'doc.tags.0.variable', '$locale' );
+		$this->assertArrayPathEquals( $func, 'doc.tags.1.types', [ '\My_Plugin\Options' ] );
+		$this->assertArrayPathEquals( $func, 'doc.tags.1.variable', '$opts' );
 	}
 
 	public function test_phpdoc_property_types() {

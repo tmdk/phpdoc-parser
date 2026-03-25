@@ -280,6 +280,9 @@ class Export_Docblocks extends Export_UnitTestCase {
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'global' ) );
 		$this->assertCount( 1, $tags );
+		$this->assertEquals( [ '\WP_Locale' ], $tags[0]['types'] );
+		$this->assertEquals( '$wp_locale', $tags[0]['variable'] );
+		$this->assertStringContainsString( 'locale object', $tags[0]['content'] );
 	}
 
 	/**

@@ -930,6 +930,15 @@ $numeric_notation_to_decimal = [
 	'resolution' => fn( $expected, $actual ) => [ $actual ],
 ];
 
+$global_tag_structured = [
+	// New parser produces structured @global tags (types, variable, content)
+	// instead of the old flat content string.
+	'id' => 'new-parser-structured-global-tag',
+
+	'filter'     => fn( $tag ) => ( $tag['name'] ?? null ) === 'global',
+	'resolution' => fn( $expected, $actual ) => [ $actual ],
+];
+
 return [
 	'class'    => [
 		[
@@ -1282,6 +1291,10 @@ return [
 	],
 	'method'   => [
 		[
+			...$global_tag_structured,
+			'path' => 'doc.tags[]',
+		],
+		[
 			// Old parser missed all uses in WP_Block methods; new parser correctly finds them.
 			'id'     => 'old-parser-missed-uses-in-wp-block-methods',
 			'method' => fn( $name ) => str_starts_with( $name, 'WP_Block::' ),
@@ -1401,6 +1414,10 @@ return [
 	],
 	'function' => [
 		... $callable_baseline,
+		[
+			...$global_tag_structured,
+			'path' => 'doc.tags[]',
+		],
 		$method_uses_class_fully_qualified_name,
 		$method_uses_class_resolves_to_classname,
 		[
