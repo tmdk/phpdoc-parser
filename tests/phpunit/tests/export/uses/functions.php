@@ -127,4 +127,56 @@ class Export_Function_Use extends Export_UnitTestCase {
 			)
 		);
 	}
+
+	/**
+	 * Test that include/require statements are exported.
+	 */
+	public function test_includes() {
+
+		$this->assertArrayHasKey( 'includes', $this->export_data );
+
+		$includes = $this->export_data['includes'];
+		$this->assertCount( 4, $includes );
+
+		$types = array_column( $includes, 'type' );
+		$this->assertContains( 'Include', $types );
+		$this->assertContains( 'Require', $types );
+		$this->assertContains( 'Include Once', $types );
+		$this->assertContains( 'Require Once', $types );
+	}
+
+	/**
+	 * Test that _deprecated_function() calls set deprecation_version on
+	 * the first function use entry.
+	 */
+	public function test_deprecation_version_in_function_uses() {
+
+		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'deprecated_func_caller' );
+		$this->assertIsArray( $func );
+
+		$uses = $func['uses']['functions'];
+		$this->assertArrayHasKey( 'deprecation_version', $uses[0] );
+		$this->assertEquals( '3.0.0', $uses[0]['deprecation_version'] );
+	}
+
+	/**
+	 * Test that _deprecated_function() in a method sets deprecation_version
+	 * on the function uses, not on the method uses.
+	 */
+	public function test_deprecation_version_in_method_scope() {
+
+		$class  = $this->find_entity_data_in( $this->export_data, 'classes', 'Deprecated_Method_Class' );
+		$this->assertIsArray( $class );
+		$method = $this->find_entity_data_in( $class, 'methods', 'old_method' );
+		$this->assertIsArray( $method );
+
+		// deprecation_version is on the function uses (where _deprecated_function lives).
+		$func_uses = $method['uses']['functions'];
+		$this->assertArrayHasKey( 'deprecation_version', $func_uses[0] );
+		$this->assertEquals( '4.0.0', $func_uses[0]['deprecation_version'] );
+
+		// Method uses don't carry deprecation_version.
+		$method_uses = $method['uses']['methods'];
+		$this->assertArrayNotHasKey( 'deprecation_version', $method_uses[0] );
+	}
 }

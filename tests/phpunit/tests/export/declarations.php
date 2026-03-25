@@ -207,4 +207,66 @@ class Export_Declarations extends Export_UnitTestCase {
 		$method = $this->find_entity_data_in( $class, 'methods', 'with_closures' );
 		$this->assertIsArray( $method, 'with_closures method should be exported' );
 	}
+
+	/**
+	 * Test that define() constants are exported.
+	 */
+	public function test_define_constants() {
+
+		$this->assertArrayHasKey( 'constants', $this->export_data );
+
+		$simple = $this->find_entity_data_in( $this->export_data, 'constants', 'SIMPLE_DEFINE' );
+		$this->assertIsArray( $simple );
+		$this->assertEquals( "'hello world'", $simple['value'] );
+
+		$numeric = $this->find_entity_data_in( $this->export_data, 'constants', 'NUMERIC_DEFINE' );
+		$this->assertIsArray( $numeric );
+		$this->assertEquals( '42', $numeric['value'] );
+	}
+
+	/**
+	 * Test that const declarations are exported.
+	 */
+	public function test_const_declarations() {
+
+		$const = $this->find_entity_data_in( $this->export_data, 'constants', 'SIMPLE_CONST' );
+		$this->assertIsArray( $const );
+		$this->assertEquals( "'constant value'", $const['value'] );
+	}
+
+	/**
+	 * Test that multi-const declarations are exported as separate entries.
+	 */
+	public function test_multi_const_declaration() {
+
+		$a = $this->find_entity_data_in( $this->export_data, 'constants', 'MULTI_A' );
+		$this->assertIsArray( $a );
+		$this->assertEquals( '1', $a['value'] );
+
+		$b = $this->find_entity_data_in( $this->export_data, 'constants', 'MULTI_B' );
+		$this->assertIsArray( $b );
+		$this->assertEquals( '2', $b['value'] );
+	}
+
+	/**
+	 * Test that anonymous classes are skipped without crashing.
+	 */
+	public function test_anonymous_class_skipped() {
+
+		$class = $this->find_entity_data_in( $this->export_data, 'classes', 'Anon_Class_User' );
+		$this->assertIsArray( $class );
+
+		$method = $this->find_entity_data_in( $class, 'methods', 'create_anon' );
+		$this->assertIsArray( $method, 'create_anon method should be exported' );
+	}
+
+	/**
+	 * Test that heredoc values in define() are exported.
+	 */
+	public function test_heredoc_constant_value() {
+
+		$const = $this->find_entity_data_in( $this->export_data, 'constants', 'HEREDOC_DEFINE' );
+		$this->assertIsArray( $const );
+		$this->assertStringContainsString( 'heredoc value', $const['value'] );
+	}
 }

@@ -436,3 +436,45 @@ function test_key_of( $key ) {}
  * @param value-of<array{a: int, b: string}> $value A value from the shape.
  */
 function test_value_of( $value ) {}
+
+/**
+ * A function with @see tags that have references and descriptions.
+ *
+ * @see Some_Class::method() Does something useful.
+ * @see https://example.com/docs
+ * @see Another_Class
+ */
+function see_tag_func() {}
+
+/**
+ * A function with @uses tags with references and descriptions.
+ *
+ * @uses \WP_Query::get_posts() Fetches the posts.
+ * @uses \wp_list_pluck() For extracting fields.
+ */
+function uses_tag_with_desc_func() {}
+
+/**
+ * A function with a @link tag that has no description (triggers HTML link generation).
+ *
+ * @link https://developer.wordpress.org/reference
+ */
+function link_no_desc_func() {}
+
+/**
+ * A function with a @link tag that has a URL ending in a period.
+ *
+ * @link https://example.com/docs.
+ */
+function link_trailing_dot_func() {}
+
+/**
+ * A function with a valid @author tag with name and email.
+ *
+ * @author WordPress Core Team <team@wordpress.org>
+ */
+function author_valid_email_func() {}
+
+do_action_deprecated( 'deprecated_action', array( $arg ), '3.0.0', 'new_action' );
+apply_filters_deprecated( 'deprecated_filter', array( $val ), '2.5.0' );
+do_action_ref_array( 'ref_array_action_2', array( &$a, &$b ) );

@@ -712,4 +712,107 @@ class Export_Docblocks extends Export_UnitTestCase {
 		$this->assertStringContainsString( '$0', $content );
 		$this->assertStringContainsString( '$font-family', $content );
 	}
+
+	/**
+	 * Test that @see tags with references and descriptions are exported.
+	 */
+	public function test_see_tag_with_reference() {
+
+		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'see_tag_func' );
+		$this->assertIsArray( $func );
+
+		$see_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'see' ) );
+		$this->assertCount( 3, $see_tags );
+
+		$this->assertEquals( 'Some_Class::method()', $see_tags[0]['refers'] );
+		$this->assertEquals( 'Does something useful.', $see_tags[0]['content'] );
+
+		$this->assertStringContainsString( 'https://example.com/docs', $see_tags[1]['refers'] );
+
+		$this->assertEquals( 'Another_Class', $see_tags[2]['refers'] );
+	}
+
+	/**
+	 * Test that @uses tags with references and descriptions are exported.
+	 */
+	public function test_uses_tag_with_reference() {
+
+		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'uses_tag_with_desc_func' );
+		$this->assertIsArray( $func );
+
+		$uses_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'uses' ) );
+		$this->assertCount( 2, $uses_tags );
+
+		$this->assertStringContainsString( 'get_posts', $uses_tags[0]['refers'] );
+		$this->assertEquals( 'Fetches the posts.', $uses_tags[0]['content'] );
+
+		$this->assertStringContainsString( 'wp_list_pluck', $uses_tags[1]['refers'] );
+	}
+
+	/**
+	 * Test that @link without description generates an HTML anchor tag.
+	 */
+	public function test_link_no_description_generates_html() {
+
+		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'link_no_desc_func' );
+		$this->assertIsArray( $func );
+
+		$link_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'link' ) );
+		$this->assertCount( 1, $link_tags );
+		$this->assertStringContainsString( '<a href=', $link_tags[0]['content'] );
+		$this->assertStringContainsString( 'developer.wordpress.org', $link_tags[0]['content'] );
+		$this->assertArrayHasKey( 'link', $link_tags[0] );
+	}
+
+	/**
+	 * Test that @link with trailing dot strips the dot from the URL.
+	 */
+	public function test_link_trailing_dot() {
+
+		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'link_trailing_dot_func' );
+		$this->assertIsArray( $func );
+
+		$link_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'link' ) );
+		$this->assertCount( 1, $link_tags );
+		// The trailing dot should be preserved after the </a> tag, not in the href.
+		$this->assertStringContainsString( '</a>.', $link_tags[0]['content'] );
+	}
+
+	/**
+	 * Test that valid @author with email generates a mailto link.
+	 */
+	public function test_author_email_generates_mailto() {
+
+		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'author_valid_email_func' );
+		$this->assertIsArray( $func );
+
+		$author_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'author' ) );
+		$this->assertCount( 1, $author_tags );
+		$this->assertStringContainsString( 'mailto:', $author_tags[0]['content'] );
+		$this->assertStringContainsString( 'WordPress Core Team', $author_tags[0]['content'] );
+	}
+
+	/**
+	 * Test that deprecated hooks are exported.
+	 */
+	public function test_deprecated_hooks() {
+
+		$hook = $this->find_entity_data_in( $this->export_data, 'hooks', 'deprecated_action' );
+		$this->assertIsArray( $hook );
+		$this->assertEquals( 'action_deprecated', $hook['type'] );
+
+		$hook = $this->find_entity_data_in( $this->export_data, 'hooks', 'deprecated_filter' );
+		$this->assertIsArray( $hook );
+		$this->assertEquals( 'filter_deprecated', $hook['type'] );
+	}
+
+	/**
+	 * Test that ref array hooks are exported with correct type.
+	 */
+	public function test_ref_array_hooks() {
+
+		$hook = $this->find_entity_data_in( $this->export_data, 'hooks', 'ref_array_action_2' );
+		$this->assertIsArray( $hook );
+		$this->assertEquals( 'action_reference', $hook['type'] );
+	}
 }

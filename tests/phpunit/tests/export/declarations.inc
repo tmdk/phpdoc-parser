@@ -134,3 +134,28 @@ class Closure_Class {
 		return $fn( 1 ) + $arrow( 2 );
 	}
 }
+
+define( 'SIMPLE_DEFINE', 'hello world' );
+define( 'NUMERIC_DEFINE', 42 );
+define( 'HEREDOC_DEFINE', <<<EOT
+heredoc value
+EOT );
+
+
+const SIMPLE_CONST = 'constant value';
+const MULTI_A = 1, MULTI_B = 2;
+
+/**
+ * A class with an anonymous class instantiation.
+ */
+class Anon_Class_User {
+
+	/**
+	 * Returns an anonymous class instance.
+	 */
+	public function create_anon() {
+		return new class {
+			public function anon_method() {}
+		};
+	}
+}

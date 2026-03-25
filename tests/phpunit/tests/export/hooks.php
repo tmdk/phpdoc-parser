@@ -185,4 +185,82 @@ class Export_Hooks extends Export_UnitTestCase {
 		$this->assertEquals( 'filter', $hook['type'] );
 		$this->assertStringContainsString( 'documented in', $hook['doc']['description'] );
 	}
+
+	/**
+	 * Test that hooks with a variable-only name are detected.
+	 */
+	public function test_hook_variable_only_name() {
+
+		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'hook_with_variable_only' );
+		$this->assertIsArray( $func );
+		$this->assertNotEmpty( $func['hooks'] );
+		$this->assertStringContainsString( '$hook_name', $func['hooks'][0]['name'] );
+	}
+
+	/**
+	 * Test that hooks with concatenation and variable produce a templated name.
+	 */
+	public function test_hook_concat_variable_name() {
+
+		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'hook_with_concat_and_variable' );
+		$this->assertIsArray( $func );
+		$this->assertNotEmpty( $func['hooks'] );
+		$this->assertStringContainsString( '$type', $func['hooks'][0]['name'] );
+		$this->assertStringContainsString( 'loaded', $func['hooks'][0]['name'] );
+	}
+
+	/**
+	 * Test deprecated hook types.
+	 */
+	public function test_deprecated_hook_types() {
+
+		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'hook_deprecated_types' );
+		$this->assertIsArray( $func );
+
+		$action = $this->find_entity_data_in( $func, 'hooks', 'old_deprecated_action' );
+		$this->assertIsArray( $action );
+		$this->assertEquals( 'action_deprecated', $action['type'] );
+
+		$filter = $this->find_entity_data_in( $func, 'hooks', 'old_deprecated_filter' );
+		$this->assertIsArray( $filter );
+		$this->assertEquals( 'filter_deprecated', $filter['type'] );
+	}
+
+	/**
+	 * Test that hook arguments with class constants are preserved.
+	 */
+	public function test_hook_with_class_constant_args() {
+
+		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'hook_with_class_constant_args' );
+		$this->assertIsArray( $func );
+
+		$hook = $this->find_entity_data_in( $func, 'hooks', 'hook_with_class_args' );
+		$this->assertIsArray( $hook );
+		$this->assertCount( 2, $hook['arguments'] );
+		$this->assertStringContainsString( 'WP_Post', $hook['arguments'][0] );
+	}
+
+	/**
+	 * Test that hook arguments with class constants in a namespace
+	 * use the original (short) name, not the fully-qualified name.
+	 */
+	public function test_hook_args_use_original_names_in_namespace() {
+
+		$data = $this->parse_string(
+			<<<'PHP'
+			namespace My_Plugin;
+			do_action( 'ns_hook', WP_Post::STATUS, \WP_Post::STATUS, Options::VALUE );
+			PHP
+		);
+
+		$hook = $this->find_entity_data_in( $data, 'hooks', 'ns_hook' );
+		$this->assertIsArray( $hook );
+
+		// Unqualified name resolved by NameResolver — original name preserved.
+		$this->assertEquals( 'WP_Post::STATUS', $hook['arguments'][0] );
+		// Already FQ — printed without leading backslash.
+		$this->assertStringContainsString( 'WP_Post::STATUS', $hook['arguments'][1] );
+		// Namespace-local name.
+		$this->assertEquals( 'Options::VALUE', $hook['arguments'][2] );
+	}
 }

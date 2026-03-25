@@ -88,3 +88,20 @@ function documented_elsewhere() {
 	/** This filter is documented in wp-includes/post.php */
 	$value = apply_filters( 'hook_documented_elsewhere', $value );
 }
+
+function hook_with_variable_only() {
+	do_action( $hook_name );
+}
+
+function hook_with_concat_and_variable() {
+	do_action( $type . '_loaded' );
+}
+
+function hook_deprecated_types() {
+	do_action_deprecated( 'old_deprecated_action', array(), '3.0.0' );
+	apply_filters_deprecated( 'old_deprecated_filter', array( $value ), '2.5.0' );
+}
+
+function hook_with_class_constant_args() {
+	do_action( 'hook_with_class_args', \WP_Post::class, My_Plugin::VERSION );
+}

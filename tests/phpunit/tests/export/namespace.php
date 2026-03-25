@@ -44,4 +44,42 @@ class Export_Namespace extends Export_UnitTestCase {
 		$this->assertIsArray( $beta, 'beta_func should be found' );
 		$this->assertEquals( 'Beta', $beta['namespace'] );
 	}
+
+	/**
+	 * Test that function use imports don't crash the parser.
+	 *
+	 * Function and const use statements are TYPE_FUNCTION/TYPE_CONSTANT,
+	 * not TYPE_NORMAL, and should be skipped by the Namespace_Visitor.
+	 */
+	public function test_function_and_const_use_imports() {
+		$data = $this->parse_string(
+			<<<'PHP'
+			namespace My_Plugin;
+			use function strlen;
+			use const PHP_INT_MAX;
+			function func() {
+				return strlen( 'hello' );
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'func' );
+		$this->assertIsArray( $func, 'func should be parsed despite function/const use imports' );
+	}
+
+	/**
+	 * Test that a global namespace block (no name) is handled.
+	 */
+	public function test_global_namespace_block() {
+		$data = $this->parse_string(
+			<<<'PHP'
+			namespace {
+				function global_func() {}
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'global_func' );
+		$this->assertIsArray( $func, 'global_func should be found' );
+	}
 }

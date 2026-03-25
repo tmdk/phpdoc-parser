@@ -28,3 +28,15 @@ class Uses_Class {
 		get_option( 'siteurl' );
 	}
 }
+
+function deprecated_func_caller() {
+	_deprecated_function( __FUNCTION__, '3.0.0', 'new_func' );
+	some_legacy_work();
+}
+
+class Deprecated_Method_Class {
+	public function old_method() {
+		_deprecated_function( __METHOD__, '4.0.0', 'new_method' );
+		SomeClass::legacy_call();
+	}
+}
