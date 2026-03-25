@@ -531,4 +531,82 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 		$this->assertArrayPathEquals( $hook, 'doc.tags.1.types', [ '\WP_Query' ] );
 		$this->assertArrayPathEquals( $hook, 'doc.tags.2.types', [ '\My_Plugin\Options' ] );
 	}
+
+	/**
+	 * Test aliased imports — use Vendor\Long\Name as Short.
+	 */
+	public function test_aliased_imports() {
+		$data = $this->parse_string(
+			<<<'PHP'
+			namespace My_Plugin;
+			use Vendor\Long\ClassName as Short;
+			function func( Short $obj ) {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'func' );
+		$this->assertIsArray( $func );
+		$this->assertArrayPathEquals( $func, 'arguments.0.type', '\Vendor\Long\ClassName' );
+	}
+
+	/**
+	 * Test function imports — use function Vendor\helper.
+	 */
+	public function test_function_imports() {
+		$data = $this->parse_string(
+			<<<'PHP'
+			namespace My_Plugin;
+			use function Vendor\Package\helper_func;
+			helper_func();
+			PHP
+		);
+
+		$this->assertArrayPathEquals( $data, 'uses.functions.0.name', 'Vendor\Package\helper_func' );
+	}
+
+	/**
+	 * Test constant imports — use const Vendor\MY_CONST.
+	 */
+	public function test_constant_imports() {
+		$data = $this->parse_string(
+			<<<'PHP'
+			namespace My_Plugin;
+			use const Vendor\Package\MY_CONST;
+			$val = MY_CONST;
+			PHP
+		);
+
+		// The file should parse without errors.
+		$this->assertIsArray( $data );
+		$this->assertArrayHasKey( 'path', $data );
+	}
+
+	/**
+	 * Test that PHPDoc types in a namespace resolve correctly even when
+	 * PHP type declarations differ.
+	 */
+	public function test_mixed_php_and_phpdoc_types() {
+		$data = $this->parse_string(
+			<<<'PHP'
+			namespace My_Plugin;
+			/**
+			 * @param \WP_Post $post A post.
+			 * @return \WP_Query The query.
+			 */
+			function func( object $post ): object {
+				return new \WP_Query();
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'func' );
+		$this->assertIsArray( $func );
+
+		// PHP type is `object`, but PHPDoc type should resolve to FQ class.
+		$this->assertArrayPathEquals( $func, 'arguments.0.type', 'object' );
+		$this->assertArrayPathEquals( $func, 'doc.tags.0.types', [ '\WP_Post' ] );
+
+		$return_tag = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'return' ) );
+		$this->assertEquals( [ '\WP_Query' ], $return_tag[0]['types'] );
+	}
 }

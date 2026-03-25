@@ -88,3 +88,351 @@ do_action( 'undocumented_hook' );
  * A reference array action.
  */
 do_action_ref_array( 'test_ref_array_action', array( &$var ) );
+
+/**
+ * A deprecated function.
+ *
+ * @since 1.0.0
+ * @deprecated 3.0.0 Use new_func() instead.
+ */
+function deprecated_func() {}
+
+/**
+ * Deprecated without version.
+ *
+ * @deprecated Use something_else() instead.
+ */
+function deprecated_no_version() {}
+
+/**
+ * A function by a single author.
+ *
+ * @author John Doe
+ */
+function authored_func() {}
+
+/**
+ * A function with author name and email.
+ *
+ * @author Jane Smith <jane@example.com>
+ */
+function authored_email_func() {}
+
+/**
+ * A function with a link tag.
+ *
+ * @link https://example.com/docs
+ */
+function linked_func() {}
+
+/**
+ * A function with a link and description.
+ *
+ * @link https://example.com/api API documentation
+ */
+function linked_desc_func() {}
+
+/**
+ * A function with a version tag.
+ *
+ * @version 2.1.0
+ */
+function versioned_func() {}
+
+/**
+ * A function with a source tag.
+ *
+ * @source 10 20 Some source content.
+ */
+function sourced_func() {}
+
+/**
+ * A function with a uses tag.
+ *
+ * @uses \WP_Query::get_posts() To fetch the posts.
+ */
+function uses_tag_func() {}
+
+/**
+ * A function with a covers tag.
+ *
+ * @covers \WP_Query::get_posts
+ */
+function covers_tag_func() {}
+
+/**
+ * A function with a global tag.
+ *
+ * @global WP_Locale $wp_locale WordPress date/time locale object.
+ */
+function global_tag_func() {}
+
+/**
+ * A function with a malformed since tag.
+ *
+ * @since
+ */
+function malformed_since_func() {}
+
+/**
+ * A function with a param without type.
+ *
+ * @param $value
+ */
+function param_no_type_func( $value ) {}
+
+/**
+ * A function with a broken return tag.
+ *
+ * @return
+ */
+function broken_return_func() {}
+
+/** */
+function empty_docblock_func() {}
+
+function undocumented_func() {}
+
+/**
+ * A function with inline {@link https://example.com link text} in the description.
+ */
+function inline_link_func() {}
+
+/**
+ * A function with inline {@see WP_Query} reference.
+ */
+function inline_see_func() {}
+
+/**
+ * A function with **bold** and *italic* and `code` in the description.
+ */
+function markdown_func() {}
+
+/**
+ * A function with a code block.
+ *
+ *     $result = do_something();
+ *     echo $result;
+ */
+function code_block_func() {}
+
+/**
+ * A function with lists.
+ *
+ * - Item one
+ * - Item two
+ * - Item three
+ *
+ * 1. First
+ * 2. Second
+ */
+function list_func() {}
+
+/**
+ * First paragraph of the long description.
+ *
+ * Second paragraph of the long description.
+ *
+ * Third paragraph of the long description.
+ */
+function multi_paragraph_func() {}
+
+/**
+ * A function with HTML entities &amp; special &lt;characters&gt;.
+ */
+function html_entities_func() {}
+
+/**
+ * This is a description that spans
+ * multiple lines but should be joined
+ * into a single line.
+ */
+function line_joining_func() {}
+
+/**
+ * Intersection type in @param.
+ *
+ * @param Countable&Traversable $collection A collection.
+ * @return Countable&Traversable The same collection.
+ */
+function test_intersection_phpdoc( $collection ) {
+	return $collection;
+}
+
+/**
+ * Generic type in @param.
+ *
+ * @param Collection<string, WP_Post> $posts A collection of posts.
+ * @return array<int, string> Mapped values.
+ */
+function test_generic_types( $posts ) {
+	return [];
+}
+
+/**
+ * Array shape in @param.
+ *
+ * @param array{id: int, name: string, active?: bool} $data The data shape.
+ * @return array{success: bool, message: string} The result shape.
+ */
+function test_array_shapes( $data ) {
+	return [ 'success' => true, 'message' => '' ];
+}
+
+/**
+ * List shape in @param.
+ *
+ * @param list{int, string} $pair A typed pair.
+ */
+function test_list_shapes( $pair ) {}
+
+/**
+ * Object shape in @param.
+ *
+ * @param object{name: string, age: int} $person A person object.
+ */
+function test_object_shapes( $person ) {}
+
+/**
+ * Callable type in @param.
+ *
+ * @param callable(int, string): bool $callback A callback function.
+ */
+function test_callable_types( $callback ) {}
+
+/**
+ * Conditional return type.
+ *
+ * @template T
+ * @param T $value The value.
+ * @return ($value is string ? int : float) The conditional result.
+ */
+function test_conditional_types( $value ) {
+	return is_string( $value ) ? strlen( $value ) : 1.0;
+}
+
+/**
+ * Class-string type.
+ *
+ * @param class-string<WP_Post> $class The class name.
+ * @return class-string The result class.
+ */
+function test_class_string( $class ) {
+	return $class;
+}
+
+/**
+ * Const expression types.
+ *
+ * @param Foo::BAR $value A constant value.
+ * @param Foo::BAR_* $pattern A constant pattern.
+ */
+function test_const_expressions( $value, $pattern ) {}
+
+/**
+ * Offset access type.
+ *
+ * @template T of array
+ * @template K of key-of<T>
+ * @param T $arr The array.
+ * @param K $key The key.
+ * @return T[K] The value.
+ */
+function test_offset_access( $arr, $key ) {
+	return $arr[ $key ];
+}
+
+/**
+ * Parenthesized type.
+ *
+ * @param (int|string)[] $items Array of int or string.
+ */
+function test_parenthesized_types( $items ) {}
+
+class PHPDoc_Return_Types {
+	/**
+	 * Static return type in PHPDoc.
+	 *
+	 * @return static The current instance.
+	 */
+	public function test_static_return() {
+		return new static();
+	}
+
+	/**
+	 * $this return type.
+	 *
+	 * @return $this The current instance for chaining.
+	 */
+	public function test_this_return() {
+		return $this;
+	}
+}
+
+/**
+ * Never/void/no-return types.
+ *
+ * @return never This never returns.
+ */
+function test_never_type() {
+	throw new \Exception();
+}
+
+/**
+ * @return void
+ */
+function test_void_type() {}
+
+/**
+ * @return no-return
+ */
+function test_no_return_type() {
+	exit;
+}
+
+/**
+ * WordPress @type argument hash — simple scalars.
+ *
+ * @param array $args {
+ *     Optional. Arguments.
+ *
+ *     @type string $name         The name.
+ *     @type int|string $value    The value.
+ *     @type int[] $ids           Array of IDs.
+ *     @type WP_Post $post        A post object.
+ *     @type 'auto'|'low'|'high' $priority Priority level.
+ *     @type array<string, mixed> $schema  The schema.
+ * }
+ */
+function test_type_hash_args( $args = array() ) {}
+
+/**
+ * WordPress @type with optional and numeric entries.
+ *
+ * @param array $args {
+ *     Arguments.
+ *
+ *     @type string $0             First positional arg.
+ *     @type string $font-family   Font family.
+ *     @type array  ...$0 {
+ *         Nested args.
+ *
+ *         @type string $key A key.
+ *     }
+ * }
+ */
+function test_type_hash_special( $args = array() ) {}
+
+/**
+ * Key-of type.
+ *
+ * @param key-of<array{a: int, b: string}> $key A key from the shape.
+ */
+function test_key_of( $key ) {}
+
+/**
+ * Value-of type.
+ *
+ * @param value-of<array{a: int, b: string}> $value A value from the shape.
+ */
+function test_value_of( $value ) {}

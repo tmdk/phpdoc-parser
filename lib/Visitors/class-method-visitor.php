@@ -32,7 +32,10 @@ class Method_Visitor extends Scope_Aware_Visitor {
 		}
 
 		$current_class = $this->current_scope();
-		assert( $current_class instanceof Class_ );
+
+		if ( ! $current_class instanceof Class_ ) {
+			return null;
+		}
 
 		$method = $this->method_factory->create( $node, $this->scope );
 		$current_class->add_method( $method );

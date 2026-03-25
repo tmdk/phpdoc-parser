@@ -42,7 +42,7 @@ class Method_Factory {
 		$method->set_final( $node->isFinal() );
 		$method->set_abstract( $node->isAbstract() );
 		$method->set_static( $node->isStatic() );
-		$method->set_namespace( $class->get_namespace() );
+		$method->set_namespace( $class ? $class->get_namespace() : $namespace->get_name() );
 		$method->set_aliases( $namespace->get_aliases() );
 
 		// Visibility

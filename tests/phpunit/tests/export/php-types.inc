@@ -53,3 +53,97 @@ class Typed_Props_Class {
 		return null;
 	}
 }
+
+/**
+ * Function with intersection type parameter (PHP 8.1).
+ *
+ * @param Countable&Traversable $collection A countable traversable.
+ */
+function test_intersection_types( Countable&Traversable $collection ): void {}
+
+/**
+ * Function with DNF type parameter (PHP 8.2).
+ *
+ * @param (Countable&Traversable)|null $collection A nullable intersection.
+ */
+function test_dnf_types( (Countable&Traversable)|null $collection ): void {}
+
+/**
+ * Function with return type declaration.
+ *
+ * @return string The greeting.
+ */
+function test_return_type(): string {
+	return 'hello';
+}
+
+/**
+ * Function with void return type.
+ */
+function test_void_return(): void {}
+
+/**
+ * Function with never return type.
+ */
+function test_never_return(): never {
+	throw new \RuntimeException();
+}
+
+class Return_Type_Class {
+	/**
+	 * Method with self return type.
+	 */
+	public function clone_self(): self {
+		return clone $this;
+	}
+
+	/**
+	 * Method with parent return type.
+	 */
+	public function get_parent(): parent {
+		return parent::getInstance();
+	}
+
+	/**
+	 * Method with static return type.
+	 */
+	public function fluent(): static {
+		return $this;
+	}
+}
+
+class Readonly_Props {
+	/**
+	 * A readonly property (PHP 8.1).
+	 */
+	public readonly string $name;
+
+	/**
+	 * A readonly typed property with constructor assignment.
+	 */
+	public readonly int $id;
+
+	public function __construct( string $name, int $id ) {
+		$this->name = $name;
+		$this->id = $id;
+	}
+}
+
+/**
+ * Function with variadic parameter.
+ *
+ * @param string ...$args The arguments.
+ */
+function test_variadic( string ...$args ): void {}
+
+/**
+ * Constructor property promotion (PHP 8.0).
+ */
+class Promoted_Props {
+
+	public function __construct(
+		private string $name,
+		protected int $age = 0,
+		public readonly string $role = 'user',
+	) {}
+}

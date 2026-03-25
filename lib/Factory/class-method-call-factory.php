@@ -143,6 +143,10 @@ class Method_Call_Factory {
 	private function get_class( Node $node, Class_ $class = null ): string|Templated_String {
 		if ( $this->is_class_reference( $node ) && $class ) {
 			$class_name = $this->resolve_special_classname( $node, $class );
+		} elseif ( $this->is_class_reference( $node ) && ! $class ) {
+			// $this, self, or parent used outside of a class context — return as-is.
+			assert( $node instanceof Node\Expr\Variable || $node instanceof Node\Name );
+			$class_name = $node instanceof Node\Expr\Variable ? '$' . $node->name : $node->toString();
 		} elseif ( $this->is_global_var( $node ) ) {
 			$class_name = $this->get_class_for_global( $node );
 		} elseif ( $node instanceof Node\Name ) {
