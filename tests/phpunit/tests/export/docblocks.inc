@@ -188,6 +188,16 @@ function param_no_type_func( $value ) {}
  */
 function broken_return_func() {}
 
+/**
+ * A function with various invalid tags handled by the generic handler.
+ *
+ * @param without proper format
+ * @return
+ * @var
+ * @throws
+ */
+function invalid_tags_func() {}
+
 /** */
 function empty_docblock_func() {}
 

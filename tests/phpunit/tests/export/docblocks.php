@@ -321,6 +321,33 @@ class Export_Docblocks extends Export_UnitTestCase {
 	}
 
 	/**
+	 * Test that invalid tags are exported with their body in content.
+	 */
+	public function test_invalid_tags_generic_handler() {
+
+		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'invalid_tags_func' );
+		$this->assertIsArray( $func );
+
+		$tags = $func['doc']['tags'];
+
+		$param = array_values( array_filter( $tags, fn( $t ) => $t['name'] === 'param' ) );
+		$this->assertCount( 1, $param );
+		$this->assertStringContainsString( 'without proper format', $param[0]['content'] );
+
+		$return = array_values( array_filter( $tags, fn( $t ) => $t['name'] === 'return' ) );
+		$this->assertCount( 1, $return );
+		$this->assertArrayHasKey( 'content', $return[0] );
+
+		$var = array_values( array_filter( $tags, fn( $t ) => $t['name'] === 'var' ) );
+		$this->assertCount( 1, $var );
+		$this->assertArrayHasKey( 'content', $var[0] );
+
+		$throws = array_values( array_filter( $tags, fn( $t ) => $t['name'] === 'throws' ) );
+		$this->assertCount( 1, $throws );
+		$this->assertArrayHasKey( 'content', $throws[0] );
+	}
+
+	/**
 	 * Test that an empty docblock exports with empty description.
 	 */
 	public function test_empty_docblock() {
