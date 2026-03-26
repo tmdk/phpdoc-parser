@@ -483,8 +483,7 @@ class Export_Qualified_Names extends Export_UnitTestCase {
 			PHP
 		);
 
-		$class  = $this->find_entity_data_in( $data, 'classes', 'Foo' );
-		$method = $this->find_entity_data_in( $class, 'methods', 'bar' );
+		$method = $this->find_entity_data_in( $data, 'classes', 'Foo', 'methods', 'bar' );
 		$this->assertArrayPathEquals( $method, 'doc.tags.0.refers', 'self::$var' );
 		$this->assertArrayPathEquals( $method, 'doc.tags.1.refers', 'self::CONST' );
 		$this->assertArrayPathEquals( $method, 'doc.tags.2.refers', 'self::method()' );

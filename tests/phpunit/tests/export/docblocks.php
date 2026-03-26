@@ -16,9 +16,27 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_linebreaks_removed() {
 
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * This is a class docblock.
+			 *
+			 * This is the more wordy description: This is a comment with two *'s at the start,
+			 * which means that it is a doc comment. Docblock comments are comment blocks used
+			 * to document code. This one documents the Test_Class class.
+			 *
+			 * @since 3.5.2
+			 */
+			class Test_Class {}
+			PHP
+		);
+
+		$class = $this->find_entity_data_in( $data, 'classes', 'Test_Class' );
+		$this->assertIsArray( $class );
+
 		$this->assertStringMatchesFormat(
 			'%s'
-			, $this->export_data['classes'][0]['doc']['long_description']
+			, $class['doc']['long_description']
 		);
 	}
 
@@ -27,12 +45,15 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_undocumented_hook() {
 
-		$this->assertHookHasDocs(
-			'undocumented_hook'
-			, array(
-				'description' => '',
-			)
+		$data = $this->parse_string(
+			<<<'PHP'
+			do_action( 'undocumented_hook' );
+			PHP
 		);
+
+		$hook = $this->find_entity_data_in( $data, 'hooks', 'undocumented_hook' );
+		$this->assertIsArray( $hook );
+		$this->assertEquals( '', $hook['doc']['description'] );
 	}
 
 	/**
@@ -40,25 +61,49 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_hook_docblocks() {
 
-		$this->assertHookHasDocs(
-			'test_action'
-			, array( 'description' => 'A test action.' )
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A test action.
+			 *
+			 * @since 3.7.0
+			 *
+			 * @param WP_Post $post Post object.
+			 */
+			do_action( 'test_action', $post );
+
+			/**
+			 * A filter.
+			 */
+			$var = apply_filters( 'test_filter', $var );
+
+			/**
+			 * A reference array action.
+			 */
+			do_action_ref_array( 'test_ref_array_action', array( &$var ) );
+
+			/**
+			 * A reference array filter.
+			 */
+			$var = apply_filters_ref_array( 'test_ref_array_filter', array( &$var ) );
+			PHP
 		);
 
-		$this->assertHookHasDocs(
-			'test_filter'
-			, array( 'description' => 'A filter.' )
-		);
+		$hook = $this->find_entity_data_in( $data, 'hooks', 'test_action' );
+		$this->assertIsArray( $hook );
+		$this->assertEquals( 'A test action.', $hook['doc']['description'] );
 
-		$this->assertHookHasDocs(
-			'test_ref_array_action'
-			, array( 'description' => 'A reference array action.' )
-		);
+		$hook = $this->find_entity_data_in( $data, 'hooks', 'test_filter' );
+		$this->assertIsArray( $hook );
+		$this->assertEquals( 'A filter.', $hook['doc']['description'] );
 
-		$this->assertHookHasDocs(
-			'test_ref_array_filter'
-			, array( 'description' => 'A reference array filter.' )
-		);
+		$hook = $this->find_entity_data_in( $data, 'hooks', 'test_ref_array_action' );
+		$this->assertIsArray( $hook );
+		$this->assertEquals( 'A reference array action.', $hook['doc']['description'] );
+
+		$hook = $this->find_entity_data_in( $data, 'hooks', 'test_ref_array_filter' );
+		$this->assertIsArray( $hook );
+		$this->assertEquals( 'A reference array filter.', $hook['doc']['description'] );
 	}
 
 	/**
@@ -66,9 +111,21 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_file_docblocks() {
 
-		$this->assertFileHasDocs(
-			array( 'description' => 'This is the file-level docblock summary.' )
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * This is the file-level docblock summary.
+			 *
+			 * This is the file-level docblock description, which may span multiple lines. In
+			 * fact, this one does. It spans more than two full lines, continuing on to the
+			 * third line.
+			 *
+			 * @since 1.5.0
+			 */
+			PHP
 		);
+
+		$this->assertEquals( 'This is the file-level docblock summary.', $data['file']['description'] );
 	}
 
 	/**
@@ -76,35 +133,55 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_function_docblocks() {
 
-		$this->assertFunctionHasDocs(
-			'test_func'
-			, array(
-				'description' => 'This is a function docblock.',
-				'long_description' => '<p>This function is just a test, but we\'ve added this description anyway.</p>',
-				'tags' => array(
-					array(
-						'name' => 'since',
-						'content' => '2.6.0',
-					),
-					array(
-						'name' => 'param',
-						'content' => 'A string value.',
-						'types' => array( 'string' ),
-						'variable' => '$var',
-					),
-					array(
-						'name' => 'param',
-						'content' => 'A number.',
-						'types' => array( 'int' ),
-						'variable' => '$num',
-					),
-					array(
-						'name' => 'return',
-						'content' => 'Whether the function was called correctly.',
-						'types' => array( 'bool' ),
-					),
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * This is a function docblock.
+			 *
+			 * This function is just a test, but we've added this description anyway.
+			 *
+			 * @since 2.6.0
+			 *
+			 * @param string $var A string value.
+			 * @param int    $num A number.
+			 *
+			 * @return bool Whether the function was called correctly.
+			 */
+			function test_func( $var, $num ) {
+				return true;
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_func' );
+		$this->assertIsArray( $func );
+		$this->assertEquals( 'This is a function docblock.', $func['doc']['description'] );
+		$this->assertEquals( '<p>This function is just a test, but we\'ve added this description anyway.</p>', $func['doc']['long_description'] );
+		$this->assertEquals(
+			array(
+				array(
+					'name' => 'since',
+					'content' => '2.6.0',
 				),
-			)
+				array(
+					'name' => 'param',
+					'content' => 'A string value.',
+					'types' => array( 'string' ),
+					'variable' => '$var',
+				),
+				array(
+					'name' => 'param',
+					'content' => 'A number.',
+					'types' => array( 'int' ),
+					'variable' => '$num',
+				),
+				array(
+					'name' => 'return',
+					'content' => 'Whether the function was called correctly.',
+					'types' => array( 'bool' ),
+				),
+			),
+			$func['doc']['tags']
 		);
 	}
 
@@ -113,10 +190,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_class_docblocks() {
 
-		$this->assertClassHasDocs(
-			'Test_Class'
-			, array( 'description' => 'This is a class docblock.' )
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * This is a class docblock.
+			 */
+			class Test_Class {}
+			PHP
 		);
+
+		$class = $this->find_entity_data_in( $data, 'classes', 'Test_Class' );
+		$this->assertIsArray( $class );
+		$this->assertEquals( 'This is a class docblock.', $class['doc']['description'] );
 	}
 
 	/**
@@ -124,11 +209,29 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_method_docblocks() {
 
-		$this->assertMethodHasDocs(
-			'Test_Class'
-			, 'test_method'
-			, array( 'description' => 'This is a method docblock.' )
+		$data = $this->parse_string(
+			<<<'PHP'
+			class Test_Class {
+				/**
+				 * This is a method docblock.
+				 *
+				 * @since 4.5.0
+				 *
+				 * @param mixed $var A parameter.
+				 * @param array $arr Another parameter.
+				 *
+				 * @return mixed The first param.
+				 */
+				public function test_method( $var, $arr ) {
+					return $var;
+				}
+			}
+			PHP
 		);
+
+		$method = $this->find_entity_data_in( $data, 'classes', 'Test_Class', 'methods', 'test_method' );
+		$this->assertIsArray( $method );
+		$this->assertEquals( 'This is a method docblock.', $method['doc']['description'] );
 	}
 
 	/**
@@ -136,11 +239,24 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_property_docblocks() {
 
-		$this->assertPropertyHasDocs(
-			'Test_Class'
-			, '$a_string'
-			, array( 'description' => 'This is a docblock for a class property.' )
+		$data = $this->parse_string(
+			<<<'PHP'
+			class Test_Class {
+				/**
+				 * This is a docblock for a class property.
+				 *
+				 * @since 3.0.0
+				 *
+				 * @var string
+				 */
+				public $a_string;
+			}
+			PHP
 		);
+
+		$property = $this->find_entity_data_in( $data, 'classes', 'Test_Class', 'properties', '$a_string' );
+		$this->assertIsArray( $property );
+		$this->assertEquals( 'This is a docblock for a class property.', $property['doc']['description'] );
 	}
 
 	/**
@@ -148,7 +264,19 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_deprecated_tag() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'deprecated_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A deprecated function.
+			 *
+			 * @since 1.0.0
+			 * @deprecated 3.0.0 Use new_func() instead.
+			 */
+			function deprecated_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'deprecated_func' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'deprecated' ) );
@@ -161,7 +289,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_deprecated_no_version() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'deprecated_no_version' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Deprecated without version.
+			 *
+			 * @deprecated Use something_else() instead.
+			 */
+			function deprecated_no_version() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'deprecated_no_version' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'deprecated' ) );
@@ -174,7 +313,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_author_name_only() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'authored_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function by a single author.
+			 *
+			 * @author John Doe
+			 */
+			function authored_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'authored_func' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'author' ) );
@@ -187,7 +337,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_author_with_email() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'authored_email_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with author name and email.
+			 *
+			 * @author Jane Smith <jane@example.com>
+			 */
+			function authored_email_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'authored_email_func' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'author' ) );
@@ -200,7 +361,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_link_tag() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'linked_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with a link tag.
+			 *
+			 * @link https://example.com/docs
+			 */
+			function linked_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'linked_func' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'link' ) );
@@ -213,7 +385,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_link_with_description() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'linked_desc_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with a link and description.
+			 *
+			 * @link https://example.com/api API documentation
+			 */
+			function linked_desc_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'linked_desc_func' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'link' ) );
@@ -226,7 +409,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_version_tag() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'versioned_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with a version tag.
+			 *
+			 * @version 2.1.0
+			 */
+			function versioned_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'versioned_func' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'version' ) );
@@ -239,7 +433,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_source_tag() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'sourced_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with a source tag.
+			 *
+			 * @source 10 20 Some source content.
+			 */
+			function sourced_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'sourced_func' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'source' ) );
@@ -251,7 +456,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_uses_tag() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'uses_tag_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with a uses tag.
+			 *
+			 * @uses \WP_Query::get_posts() To fetch the posts.
+			 */
+			function uses_tag_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'uses_tag_func' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'uses' ) );
@@ -263,7 +479,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_covers_tag() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'covers_tag_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with a covers tag.
+			 *
+			 * @covers \WP_Query::get_posts
+			 */
+			function covers_tag_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'covers_tag_func' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'covers' ) );
@@ -275,7 +502,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_global_tag() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'global_tag_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with a global tag.
+			 *
+			 * @global WP_Locale $wp_locale WordPress date/time locale object.
+			 */
+			function global_tag_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'global_tag_func' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'global' ) );
@@ -290,7 +528,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_malformed_since() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'malformed_since_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with a malformed since tag.
+			 *
+			 * @since
+			 */
+			function malformed_since_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'malformed_since_func' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'since' ) );
@@ -303,7 +552,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_param_no_type() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'param_no_type_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with a param without type.
+			 *
+			 * @param $value
+			 */
+			function param_no_type_func( $value ) {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'param_no_type_func' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -316,7 +576,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_broken_return() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'broken_return_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with a broken return tag.
+			 *
+			 * @return
+			 */
+			function broken_return_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'broken_return_func' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'return' ) );
@@ -328,7 +599,21 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_invalid_tags_generic_handler() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'invalid_tags_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with various invalid tags handled by the generic handler.
+			 *
+			 * @param without proper format
+			 * @return
+			 * @var
+			 * @throws
+			 */
+			function invalid_tags_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'invalid_tags_func' );
 		$this->assertIsArray( $func );
 
 		$tags = $func['doc']['tags'];
@@ -355,7 +640,14 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_empty_docblock() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'empty_docblock_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/** */
+			function empty_docblock_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'empty_docblock_func' );
 		$this->assertIsArray( $func );
 		$this->assertEmpty( $func['doc']['description'] );
 		$this->assertEmpty( $func['doc']['long_description'] );
@@ -366,7 +658,13 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_no_docblock() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'undocumented_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			function undocumented_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'undocumented_func' );
 		$this->assertIsArray( $func );
 		$this->assertEmpty( $func['doc']['description'] );
 	}
@@ -376,7 +674,16 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_inline_link() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'inline_link_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with inline {@link https://example.com link text} in the description.
+			 */
+			function inline_link_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'inline_link_func' );
 		$this->assertIsArray( $func );
 		$this->assertStringContainsString( 'link', $func['doc']['description'] );
 	}
@@ -386,7 +693,16 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_inline_see() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'inline_see_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with inline {@see WP_Query} reference.
+			 */
+			function inline_see_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'inline_see_func' );
 		$this->assertIsArray( $func );
 		$this->assertStringContainsString( 'WP_Query', $func['doc']['description'] );
 	}
@@ -396,7 +712,16 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_markdown_in_description() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'markdown_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with **bold** and *italic* and `code` in the description.
+			 */
+			function markdown_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'markdown_func' );
 		$this->assertIsArray( $func );
 		$this->assertStringContainsString( 'bold', $func['doc']['description'] );
 		$this->assertStringContainsString( 'italic', $func['doc']['description'] );
@@ -408,7 +733,19 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_code_block_in_description() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'code_block_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with a code block.
+			 *
+			 *     $result = do_something();
+			 *     echo $result;
+			 */
+			function code_block_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'code_block_func' );
 		$this->assertIsArray( $func );
 		$this->assertNotEmpty( $func['doc']['long_description'] );
 		$this->assertStringContainsString( 'do_something', $func['doc']['long_description'] );
@@ -419,7 +756,23 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_lists_in_description() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'list_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with lists.
+			 *
+			 * - Item one
+			 * - Item two
+			 * - Item three
+			 *
+			 * 1. First
+			 * 2. Second
+			 */
+			function list_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'list_func' );
 		$this->assertIsArray( $func );
 		$this->assertNotEmpty( $func['doc']['long_description'] );
 		$this->assertStringContainsString( 'Item one', $func['doc']['long_description'] );
@@ -430,7 +783,20 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_multi_paragraph_description() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'multi_paragraph_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * First paragraph of the long description.
+			 *
+			 * Second paragraph of the long description.
+			 *
+			 * Third paragraph of the long description.
+			 */
+			function multi_paragraph_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'multi_paragraph_func' );
 		$this->assertIsArray( $func );
 		$this->assertStringContainsString( 'Second paragraph', $func['doc']['long_description'] );
 		$this->assertStringContainsString( 'Third paragraph', $func['doc']['long_description'] );
@@ -441,7 +807,16 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_html_entities() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'html_entities_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with HTML entities &amp; special &lt;characters&gt;.
+			 */
+			function html_entities_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'html_entities_func' );
 		$this->assertIsArray( $func );
 		$this->assertStringContainsString( '&amp;', $func['doc']['description'] );
 	}
@@ -451,7 +826,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_line_joining() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'line_joining_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * This is a description that spans
+			 * multiple lines but should be joined
+			 * into a single line.
+			 */
+			function line_joining_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'line_joining_func' );
 		$this->assertIsArray( $func );
 		$desc = $func['doc']['description'];
 		$this->assertStringNotContainsString( "\n", $desc );
@@ -464,7 +850,21 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_intersection_types() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_intersection_phpdoc' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Intersection type in @param.
+			 *
+			 * @param Countable&Traversable $collection A collection.
+			 * @return Countable&Traversable The same collection.
+			 */
+			function test_intersection_phpdoc( $collection ) {
+				return $collection;
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_intersection_phpdoc' );
 		$this->assertIsArray( $func );
 
 		$param_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -482,7 +882,21 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_generic_types() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_generic_types' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Generic type in @param.
+			 *
+			 * @param Collection<string, WP_Post> $posts A collection of posts.
+			 * @return array<int, string> Mapped values.
+			 */
+			function test_generic_types( $posts ) {
+				return [];
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_generic_types' );
 		$this->assertIsArray( $func );
 
 		$param_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -495,7 +909,21 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_array_shapes() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_array_shapes' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Array shape in @param.
+			 *
+			 * @param array{id: int, name: string, active?: bool} $data The data shape.
+			 * @return array{success: bool, message: string} The result shape.
+			 */
+			function test_array_shapes( $data ) {
+				return [ 'success' => true, 'message' => '' ];
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_array_shapes' );
 		$this->assertIsArray( $func );
 
 		$param_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -509,7 +937,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_list_shapes() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_list_shapes' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * List shape in @param.
+			 *
+			 * @param list{int, string} $pair A typed pair.
+			 */
+			function test_list_shapes( $pair ) {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_list_shapes' );
 		$this->assertIsArray( $func );
 
 		$param_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -522,7 +961,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_object_shapes() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_object_shapes' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Object shape in @param.
+			 *
+			 * @param object{name: string, age: int} $person A person object.
+			 */
+			function test_object_shapes( $person ) {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_object_shapes' );
 		$this->assertIsArray( $func );
 
 		$param_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -535,7 +985,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_callable_types() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_callable_types' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Callable type in @param.
+			 *
+			 * @param callable(int, string): bool $callback A callback function.
+			 */
+			function test_callable_types( $callback ) {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_callable_types' );
 		$this->assertIsArray( $func );
 
 		$param_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -549,7 +1010,22 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_conditional_types() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_conditional_types' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Conditional return type.
+			 *
+			 * @template T
+			 * @param T $value The value.
+			 * @return ($value is string ? int : float) The conditional result.
+			 */
+			function test_conditional_types( $value ) {
+				return is_string( $value ) ? strlen( $value ) : 1.0;
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_conditional_types' );
 		$this->assertIsArray( $func );
 
 		$return_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'return' ) );
@@ -562,7 +1038,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_key_of() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_key_of' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Key-of type.
+			 *
+			 * @param key-of<array{a: int, b: string}> $key A key from the shape.
+			 */
+			function test_key_of( $key ) {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_key_of' );
 		$this->assertIsArray( $func );
 
 		$param_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -575,7 +1062,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_value_of() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_value_of' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Value-of type.
+			 *
+			 * @param value-of<array{a: int, b: string}> $value A value from the shape.
+			 */
+			function test_value_of( $value ) {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_value_of' );
 		$this->assertIsArray( $func );
 
 		$param_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -588,7 +1086,21 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_class_string() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_class_string' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Class-string type.
+			 *
+			 * @param class-string<WP_Post> $class The class name.
+			 * @return class-string The result class.
+			 */
+			function test_class_string( $class ) {
+				return $class;
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_class_string' );
 		$this->assertIsArray( $func );
 
 		$param_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -602,7 +1114,19 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_const_expressions() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_const_expressions' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Const expression types.
+			 *
+			 * @param Foo::BAR $value A constant value.
+			 * @param Foo::BAR_* $pattern A constant pattern.
+			 */
+			function test_const_expressions( $value, $pattern ) {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_const_expressions' );
 		$this->assertIsArray( $func );
 
 		$param_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -614,7 +1138,24 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_offset_access() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_offset_access' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Offset access type.
+			 *
+			 * @template T of array
+			 * @template K of key-of<T>
+			 * @param T $arr The array.
+			 * @param K $key The key.
+			 * @return T[K] The value.
+			 */
+			function test_offset_access( $arr, $key ) {
+				return $arr[ $key ];
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_offset_access' );
 		$this->assertIsArray( $func );
 
 		$return_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'return' ) );
@@ -627,7 +1168,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_parenthesized_types() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_parenthesized_types' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Parenthesized type.
+			 *
+			 * @param (int|string)[] $items Array of int or string.
+			 */
+			function test_parenthesized_types( $items ) {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_parenthesized_types' );
 		$this->assertIsArray( $func );
 
 		$param_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -640,7 +1192,22 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_static_return() {
 
-		$class = $this->find_entity_data_in( $this->export_data, 'classes', 'PHPDoc_Return_Types' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			class PHPDoc_Return_Types {
+				/**
+				 * Static return type in PHPDoc.
+				 *
+				 * @return static The current instance.
+				 */
+				public function test_static_return() {
+					return new static();
+				}
+			}
+			PHP
+		);
+
+		$class = $this->find_entity_data_in( $data, 'classes', 'PHPDoc_Return_Types' );
 		$this->assertIsArray( $class );
 		$method = $this->find_entity_data_in( $class, 'methods', 'test_static_return' );
 		$this->assertIsArray( $method );
@@ -655,7 +1222,22 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_this_return() {
 
-		$class = $this->find_entity_data_in( $this->export_data, 'classes', 'PHPDoc_Return_Types' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			class PHPDoc_Return_Types {
+				/**
+				 * $this return type.
+				 *
+				 * @return $this The current instance for chaining.
+				 */
+				public function test_this_return() {
+					return $this;
+				}
+			}
+			PHP
+		);
+
+		$class = $this->find_entity_data_in( $data, 'classes', 'PHPDoc_Return_Types' );
 		$this->assertIsArray( $class );
 		$method = $this->find_entity_data_in( $class, 'methods', 'test_this_return' );
 		$this->assertIsArray( $method );
@@ -670,7 +1252,20 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_never_type() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_never_type' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Never/void/no-return types.
+			 *
+			 * @return never This never returns.
+			 */
+			function test_never_type() {
+				throw new \Exception();
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_never_type' );
 		$this->assertIsArray( $func );
 
 		$return_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'return' ) );
@@ -683,7 +1278,16 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_void_type() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_void_type' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * @return void
+			 */
+			function test_void_type() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_void_type' );
 		$this->assertIsArray( $func );
 
 		$return_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'return' ) );
@@ -696,7 +1300,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_no_return_type() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_no_return_type' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * @return no-return
+			 */
+			function test_no_return_type() {
+				exit;
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_no_return_type' );
 		$this->assertIsArray( $func );
 
 		$return_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'return' ) );
@@ -711,7 +1326,27 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_type_hash_args() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_type_hash_args' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * WordPress @type argument hash — simple scalars.
+			 *
+			 * @param array $args {
+			 *     Optional. Arguments.
+			 *
+			 *     @type string $name         The name.
+			 *     @type int|string $value    The value.
+			 *     @type int[] $ids           Array of IDs.
+			 *     @type WP_Post $post        A post object.
+			 *     @type 'auto'|'low'|'high' $priority Priority level.
+			 *     @type array<string, mixed> $schema  The schema.
+			 * }
+			 */
+			function test_type_hash_args( $args = array() ) {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_type_hash_args' );
 		$this->assertIsArray( $func );
 
 		$param_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -733,7 +1368,28 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_phpdoc_type_hash_special() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_type_hash_special' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * WordPress @type with optional and numeric entries.
+			 *
+			 * @param array $args {
+			 *     Arguments.
+			 *
+			 *     @type string $0             First positional arg.
+			 *     @type string $font-family   Font family.
+			 *     @type array  ...$0 {
+			 *         Nested args.
+			 *
+			 *         @type string $key A key.
+			 *     }
+			 * }
+			 */
+			function test_type_hash_special( $args = array() ) {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_type_hash_special' );
 		$this->assertIsArray( $func );
 
 		$param_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -748,7 +1404,20 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_see_tag_with_reference() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'see_tag_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with @see tags that have references and descriptions.
+			 *
+			 * @see Some_Class::method() Does something useful.
+			 * @see https://example.com/docs
+			 * @see Another_Class
+			 */
+			function see_tag_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'see_tag_func' );
 		$this->assertIsArray( $func );
 
 		$see_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'see' ) );
@@ -767,7 +1436,19 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_uses_tag_with_reference() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'uses_tag_with_desc_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with @uses tags with references and descriptions.
+			 *
+			 * @uses \WP_Query::get_posts() Fetches the posts.
+			 * @uses \wp_list_pluck() For extracting fields.
+			 */
+			function uses_tag_with_desc_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'uses_tag_with_desc_func' );
 		$this->assertIsArray( $func );
 
 		$uses_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'uses' ) );
@@ -784,7 +1465,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_link_no_description_generates_html() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'link_no_desc_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with a @link tag that has no description (triggers HTML link generation).
+			 *
+			 * @link https://developer.wordpress.org/reference
+			 */
+			function link_no_desc_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'link_no_desc_func' );
 		$this->assertIsArray( $func );
 
 		$link_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'link' ) );
@@ -799,7 +1491,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_link_trailing_dot() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'link_trailing_dot_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with a @link tag that has a URL ending in a period.
+			 *
+			 * @link https://example.com/docs.
+			 */
+			function link_trailing_dot_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'link_trailing_dot_func' );
 		$this->assertIsArray( $func );
 
 		$link_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'link' ) );
@@ -813,7 +1516,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_author_email_generates_mailto() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'author_valid_email_func' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * A function with a valid @author tag with name and email.
+			 *
+			 * @author WordPress Core Team <team@wordpress.org>
+			 */
+			function author_valid_email_func() {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'author_valid_email_func' );
 		$this->assertIsArray( $func );
 
 		$author_tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'author' ) );
@@ -827,11 +1541,18 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_deprecated_hooks() {
 
-		$hook = $this->find_entity_data_in( $this->export_data, 'hooks', 'deprecated_action' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			do_action_deprecated( 'deprecated_action', array( $arg ), '3.0.0', 'new_action' );
+			apply_filters_deprecated( 'deprecated_filter', array( $val ), '2.5.0' );
+			PHP
+		);
+
+		$hook = $this->find_entity_data_in( $data, 'hooks', 'deprecated_action' );
 		$this->assertIsArray( $hook );
 		$this->assertEquals( 'action_deprecated', $hook['type'] );
 
-		$hook = $this->find_entity_data_in( $this->export_data, 'hooks', 'deprecated_filter' );
+		$hook = $this->find_entity_data_in( $data, 'hooks', 'deprecated_filter' );
 		$this->assertIsArray( $hook );
 		$this->assertEquals( 'filter_deprecated', $hook['type'] );
 	}
@@ -841,7 +1562,13 @@ class Export_Docblocks extends Export_UnitTestCase {
 	 */
 	public function test_ref_array_hooks() {
 
-		$hook = $this->find_entity_data_in( $this->export_data, 'hooks', 'ref_array_action_2' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			do_action_ref_array( 'ref_array_action_2', array( &$a, &$b ) );
+			PHP
+		);
+
+		$hook = $this->find_entity_data_in( $data, 'hooks', 'ref_array_action_2' );
 		$this->assertIsArray( $hook );
 		$this->assertEquals( 'action_reference', $hook['type'] );
 	}

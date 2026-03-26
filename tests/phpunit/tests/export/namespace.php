@@ -15,8 +15,15 @@ class Export_Namespace extends Export_UnitTestCase {
 	 * Test that hook names are standardized on export.
 	 */
 	public function test_basic_namespace_support() {
+		$data = $this->parse_string(
+			<<<'PHP'
+			namespace Awesome\Space;
+			function ohai() {}
+			PHP
+		);
+
 		$expected = 'Awesome\\Space';
-		$actual   = $this->export_data['functions'][0]['namespace'];
+		$actual   = $data['functions'][0]['namespace'];
 
 		$this->assertEquals( $expected, $actual, 'Namespace should be parsed' );
 	}

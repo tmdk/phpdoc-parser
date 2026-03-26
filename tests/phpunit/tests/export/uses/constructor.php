@@ -15,23 +15,35 @@ class Export_Constructor_Use extends Export_UnitTestCase {
 	 * Test that use is exported when the class name is used explicitly.
 	 */
 	public function test_new_class() {
+		$data = $this->parse_string(
+			<<<'PHP'
+			$query = new WP_Query();
 
-		$this->assertFileUsesMethod(
+			function test() {
+				$a = new My_Class;
+			}
+			PHP
+		);
+
+		$this->assertEntityUsesMethod(
+			$data,
 			array(
 				'name'     => '__construct',
-				'line'     => 3,
-				'end_line' => 3,
+				'line'     => 1,
+				'end_line' => 1,
 				'class'    => '\WP_Query',
 				'static'   => false,
 			)
 		);
 
-		$this->assertFunctionUsesMethod(
-			'test'
-			, array(
+		$function = $this->find_entity_data_in( $data, 'functions', 'test' );
+		$this->assertIsArray( $function );
+		$this->assertEntityUsesMethod(
+			$function,
+			array(
 				'name'     => '__construct',
-				'line'     => 6,
-				'end_line' => 6,
+				'line'     => 4,
+				'end_line' => 4,
 				'class'    => '\My_Class',
 				'static'   => false,
 			)
@@ -42,14 +54,25 @@ class Export_Constructor_Use extends Export_UnitTestCase {
 	 * Test that use is exported when the self keyword is used.
 	 */
 	public function test_new_self() {
+		$data = $this->parse_string(
+			<<<'PHP'
+			class My_Class extends Parent_Class {
 
-		$this->assertMethodUsesMethod(
-			'My_Class'
-			, 'instance'
-			, array(
+				static function instance() {
+					return new self;
+				}
+			}
+			PHP
+		);
+
+		$method = $this->find_entity_data_in( $data, 'classes', 'My_Class', 'methods', 'instance' );
+		$this->assertIsArray( $method );
+		$this->assertEntityUsesMethod(
+			$method,
+			array(
 				'name'     => '__construct',
-				'line'     => 12,
-				'end_line' => 12,
+				'line'     => 4,
+				'end_line' => 4,
 				'class'    => '\My_Class',
 				'static'   => false,
 			)
@@ -60,14 +83,25 @@ class Export_Constructor_Use extends Export_UnitTestCase {
 	 * Test that use is exported when the parent keyword is used.
 	 */
 	public function test_new_parent() {
+		$data = $this->parse_string(
+			<<<'PHP'
+			class My_Class extends Parent_Class {
 
-		$this->assertMethodUsesMethod(
-			'My_Class'
-			, 'parent'
-			, array(
+				static function parent() {
+					return new parent;
+				}
+			}
+			PHP
+		);
+
+		$method = $this->find_entity_data_in( $data, 'classes', 'My_Class', 'methods', 'parent' );
+		$this->assertIsArray( $method );
+		$this->assertEntityUsesMethod(
+			$method,
+			array(
 				'name'     => '__construct',
-				'line'     => 16,
-				'end_line' => 16,
+				'line'     => 4,
+				'end_line' => 4,
 				'class'    => '\Parent_Class',
 				'static'   => false,
 			)
@@ -78,12 +112,18 @@ class Export_Constructor_Use extends Export_UnitTestCase {
 	 * Test that use is exported when a variable is used.
 	 */
 	public function test_new_variable() {
+		$data = $this->parse_string(
+			<<<'PHP'
+			$b = new $class;
+			PHP
+		);
 
-		$this->assertFileUsesMethod(
+		$this->assertEntityUsesMethod(
+			$data,
 			array(
 				'name'     => '__construct',
-				'line'     => 20,
-				'end_line' => 20,
+				'line'     => 1,
+				'end_line' => 1,
 				'class'    => '$class',
 				'static'   => false,
 			)

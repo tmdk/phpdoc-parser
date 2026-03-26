@@ -16,8 +16,50 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 	 */
 	public function test_top_function_uses_correct() {
 
-		$this->assertFunctionUsesFunction(
-			'test'
+		$data = $this->parse_string(
+			<<<'PHP'
+
+
+			function test() {
+
+				a_function();
+
+				function sub_test() {
+
+					b_function();
+
+					My_Class::static_method();
+				}
+
+				sub_test();
+
+				My_Class::do_things();
+			}
+
+			class My_Class extends Parent_Class {
+
+				public function a_method() {
+
+					$this->do_it();
+
+					function sub_method_test() {
+
+						b_function();
+
+						My_Class::a_method();
+					}
+
+					do_things();
+				}
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test' );
+		$this->assertIsArray( $func );
+
+		$this->assertEntityUsesFunction(
+			$func
 			, array(
 				'name'     => 'a_function',
 				'line'     => 5,
@@ -25,8 +67,8 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 			)
 		);
 
-		$this->assertFunctionUsesFunction(
-			'test'
+		$this->assertEntityUsesFunction(
+			$func
 			, array(
 				'name'     => 'sub_test',
 				'line'     => 14,
@@ -34,8 +76,8 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 			)
 		);
 
-		$this->assertFunctionUsesMethod(
-			'test'
+		$this->assertEntityUsesMethod(
+			$func
 			, array(
 				'name'     => 'do_things',
 				'line'     => 16,
@@ -45,8 +87,8 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 			)
 		);
 
-		$this->assertFunctionNotUsesFunction(
-			'test'
+		$this->assertEntityNotUsesFunction(
+			$func
 			, array(
 				'name'     => 'b_function',
 				'line'     => 9,
@@ -54,8 +96,8 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 			)
 		);
 
-		$this->assertFunctionNotUsesMethod(
-			'test'
+		$this->assertEntityNotUsesMethod(
+			$func
 			, array(
 				'name'     => 'static_method',
 				'line'     => 11,
@@ -71,8 +113,50 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 	 */
 	public function test_nested_function_uses_correct() {
 
-		$this->assertFunctionUsesFunction(
-			'sub_test'
+		$data = $this->parse_string(
+			<<<'PHP'
+
+
+			function test() {
+
+				a_function();
+
+				function sub_test() {
+
+					b_function();
+
+					My_Class::static_method();
+				}
+
+				sub_test();
+
+				My_Class::do_things();
+			}
+
+			class My_Class extends Parent_Class {
+
+				public function a_method() {
+
+					$this->do_it();
+
+					function sub_method_test() {
+
+						b_function();
+
+						My_Class::a_method();
+					}
+
+					do_things();
+				}
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'sub_test' );
+		$this->assertIsArray( $func );
+
+		$this->assertEntityUsesFunction(
+			$func
 			, array(
 				'name'     => 'b_function',
 				'line'     => 9,
@@ -80,8 +164,8 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 			)
 		);
 
-		$this->assertFunctionUsesMethod(
-			'sub_test'
+		$this->assertEntityUsesMethod(
+			$func
 			, array(
 				'name'     => 'static_method',
 				'line'     => 11,
@@ -91,8 +175,8 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 			)
 		);
 
-		$this->assertFunctionNotUsesFunction(
-			'sub_test'
+		$this->assertEntityNotUsesFunction(
+			$func
 			, array(
 				'name'     => 'a_function',
 				'line'     => 5,
@@ -100,8 +184,8 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 			)
 		);
 
-		$this->assertFunctionNotUsesFunction(
-			'sub_test'
+		$this->assertEntityNotUsesFunction(
+			$func
 			, array(
 				'name'     => 'sub_test',
 				'line'     => 14,
@@ -109,8 +193,8 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 			)
 		);
 
-		$this->assertFunctionNotUsesMethod(
-			'sub_test'
+		$this->assertEntityNotUsesMethod(
+			$func
 			, array(
 				'name'     => 'do_things',
 				'line'     => 16,
@@ -125,9 +209,50 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 	 */
 	public function test_method_uses_correct() {
 
-		$this->assertMethodUsesMethod(
-			'My_Class'
-			, 'a_method'
+		$data = $this->parse_string(
+			<<<'PHP'
+
+
+			function test() {
+
+				a_function();
+
+				function sub_test() {
+
+					b_function();
+
+					My_Class::static_method();
+				}
+
+				sub_test();
+
+				My_Class::do_things();
+			}
+
+			class My_Class extends Parent_Class {
+
+				public function a_method() {
+
+					$this->do_it();
+
+					function sub_method_test() {
+
+						b_function();
+
+						My_Class::a_method();
+					}
+
+					do_things();
+				}
+			}
+			PHP
+		);
+
+		$method = $this->find_entity_data_in( $data, 'classes', 'My_Class', 'methods', 'a_method' );
+		$this->assertIsArray( $method );
+
+		$this->assertEntityUsesMethod(
+			$method
 			, array(
 				'name'     => 'do_it',
 				'line'     => 23,
@@ -137,9 +262,8 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 			)
 		);
 
-		$this->assertMethodUsesFunction(
-			'My_Class'
-			, 'a_method'
+		$this->assertEntityUsesFunction(
+			$method
 			, array(
 				'name'     => 'do_things',
 				'line'     => 32,
@@ -147,9 +271,8 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 			)
 		);
 
-		$this->assertMethodNotUsesFunction(
-			'My_Class'
-			, 'a_method'
+		$this->assertEntityNotUsesFunction(
+			$method
 			, array(
 				'name'     => 'b_function',
 				'line'     => 27,
@@ -157,9 +280,8 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 			)
 		);
 
-		$this->assertMethodNotUsesMethod(
-			'My_Class'
-			, 'a_method'
+		$this->assertEntityNotUsesMethod(
+			$method
 			, array(
 				'name'     => 'a_method',
 				'line'     => 29,
@@ -175,8 +297,50 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 	 */
 	public function test_nested_function_in_method_uses_correct() {
 
-		$this->assertFunctionUsesFunction(
-			'sub_method_test'
+		$data = $this->parse_string(
+			<<<'PHP'
+
+
+			function test() {
+
+				a_function();
+
+				function sub_test() {
+
+					b_function();
+
+					My_Class::static_method();
+				}
+
+				sub_test();
+
+				My_Class::do_things();
+			}
+
+			class My_Class extends Parent_Class {
+
+				public function a_method() {
+
+					$this->do_it();
+
+					function sub_method_test() {
+
+						b_function();
+
+						My_Class::a_method();
+					}
+
+					do_things();
+				}
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'sub_method_test' );
+		$this->assertIsArray( $func );
+
+		$this->assertEntityUsesFunction(
+			$func
 			, array(
 				'name'     => 'b_function',
 				'line'     => 27,
@@ -184,8 +348,8 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 			)
 		);
 
-		$this->assertFunctionUsesMethod(
-			'sub_method_test'
+		$this->assertEntityUsesMethod(
+			$func
 			, array(
 				'name'     => 'a_method',
 				'line'     => 29,
@@ -195,8 +359,8 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 			)
 		);
 
-		$this->assertFunctionNotUsesMethod(
-			'sub_method_test'
+		$this->assertEntityNotUsesMethod(
+			$func
 			, array(
 				'name'     => 'do_it',
 				'line'     => 23,
@@ -206,8 +370,8 @@ class Export_Nested_Function_Use extends Export_UnitTestCase {
 			)
 		);
 
-		$this->assertFunctionNotUsesFunction(
-			'sub_method_test'
+		$this->assertEntityNotUsesFunction(
+			$func
 			, array(
 				'name'     => 'do_things',
 				'line'     => 32,

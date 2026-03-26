@@ -15,19 +15,28 @@ class Export_Function_Use extends Export_UnitTestCase {
 	 */
 	public function test_file_level_function_calls() {
 
-		$this->assertFileUsesFunction(
+		$data = $this->parse_string(
+			<<<'PHP'
+			wp_enqueue_script( 'my-script' );
+			esc_html( $text );
+			PHP
+		);
+
+		$this->assertEntityUsesFunction(
+			$data,
 			array(
 				'name'     => 'wp_enqueue_script',
-				'line'     => 4,
-				'end_line' => 4,
+				'line'     => 1,
+				'end_line' => 1,
 			)
 		);
 
-		$this->assertFileUsesFunction(
+		$this->assertEntityUsesFunction(
+			$data,
 			array(
 				'name'     => 'esc_html',
-				'line'     => 5,
-				'end_line' => 5,
+				'line'     => 2,
+				'end_line' => 2,
 			)
 		);
 	}
@@ -37,19 +46,28 @@ class Export_Function_Use extends Export_UnitTestCase {
 	 */
 	public function test_hook_functions_as_uses() {
 
-		$this->assertFileUsesFunction(
+		$data = $this->parse_string(
+			<<<'PHP'
+			do_action( 'init' );
+			$val = apply_filters( 'the_content', $content );
+			PHP
+		);
+
+		$this->assertEntityUsesFunction(
+			$data,
 			array(
 				'name'     => 'do_action',
-				'line'     => 14,
-				'end_line' => 14,
+				'line'     => 1,
+				'end_line' => 1,
 			)
 		);
 
-		$this->assertFileUsesFunction(
+		$this->assertEntityUsesFunction(
+			$data,
 			array(
 				'name'     => 'apply_filters',
-				'line'     => 15,
-				'end_line' => 15,
+				'line'     => 2,
+				'end_line' => 2,
 			)
 		);
 	}
@@ -59,21 +77,33 @@ class Export_Function_Use extends Export_UnitTestCase {
 	 */
 	public function test_function_level_calls() {
 
-		$this->assertFunctionUsesFunction(
-			'func_with_calls'
-			, array(
+		$data = $this->parse_string(
+			<<<'PHP'
+			function func_with_calls() {
+				wp_enqueue_style( 'my-style' );
+				add_action( 'wp_head', 'callback' );
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'func_with_calls' );
+		$this->assertIsArray( $func );
+
+		$this->assertEntityUsesFunction(
+			$func,
+			array(
 				'name'     => 'wp_enqueue_style',
-				'line'     => 18,
-				'end_line' => 18,
+				'line'     => 2,
+				'end_line' => 2,
 			)
 		);
 
-		$this->assertFunctionUsesFunction(
-			'func_with_calls'
-			, array(
+		$this->assertEntityUsesFunction(
+			$func,
+			array(
 				'name'     => 'add_action',
-				'line'     => 19,
-				'end_line' => 19,
+				'line'     => 3,
+				'end_line' => 3,
 			)
 		);
 	}
@@ -83,21 +113,33 @@ class Export_Function_Use extends Export_UnitTestCase {
 	 */
 	public function test_hook_calls_in_function_as_uses() {
 
-		$this->assertFunctionUsesFunction(
-			'func_with_calls'
-			, array(
+		$data = $this->parse_string(
+			<<<'PHP'
+			function func_with_calls() {
+				do_action( 'custom_action', $arg );
+				$result = apply_filters( 'custom_filter', $value );
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'func_with_calls' );
+		$this->assertIsArray( $func );
+
+		$this->assertEntityUsesFunction(
+			$func,
+			array(
 				'name'     => 'do_action',
-				'line'     => 21,
-				'end_line' => 21,
+				'line'     => 2,
+				'end_line' => 2,
 			)
 		);
 
-		$this->assertFunctionUsesFunction(
-			'func_with_calls'
-			, array(
+		$this->assertEntityUsesFunction(
+			$func,
+			array(
 				'name'     => 'apply_filters',
-				'line'     => 22,
-				'end_line' => 22,
+				'line'     => 3,
+				'end_line' => 3,
 			)
 		);
 	}
@@ -107,23 +149,35 @@ class Export_Function_Use extends Export_UnitTestCase {
 	 */
 	public function test_method_level_calls() {
 
-		$this->assertMethodUsesFunction(
-			'Uses_Class'
-			, 'method_with_calls'
-			, array(
+		$data = $this->parse_string(
+			<<<'PHP'
+			class Uses_Class {
+				public function method_with_calls() {
+					wp_nonce_field( 'action', 'nonce' );
+					get_option( 'siteurl' );
+				}
+			}
+			PHP
+		);
+
+		$method = $this->find_entity_data_in( $data, 'classes', 'Uses_Class', 'methods', 'method_with_calls' );
+		$this->assertIsArray( $method );
+
+		$this->assertEntityUsesFunction(
+			$method,
+			array(
 				'name'     => 'wp_nonce_field',
-				'line'     => 27,
-				'end_line' => 27,
+				'line'     => 3,
+				'end_line' => 3,
 			)
 		);
 
-		$this->assertMethodUsesFunction(
-			'Uses_Class'
-			, 'method_with_calls'
-			, array(
+		$this->assertEntityUsesFunction(
+			$method,
+			array(
 				'name'     => 'get_option',
-				'line'     => 28,
-				'end_line' => 28,
+				'line'     => 4,
+				'end_line' => 4,
 			)
 		);
 	}
@@ -133,9 +187,18 @@ class Export_Function_Use extends Export_UnitTestCase {
 	 */
 	public function test_includes() {
 
-		$this->assertArrayHasKey( 'includes', $this->export_data );
+		$data = $this->parse_string(
+			<<<'PHP'
+			include 'header.php';
+			require 'config.php';
+			include_once 'utils.php';
+			require_once 'bootstrap.php';
+			PHP
+		);
 
-		$includes = $this->export_data['includes'];
+		$this->assertArrayHasKey( 'includes', $data );
+
+		$includes = $data['includes'];
 		$this->assertCount( 4, $includes );
 
 		$types = array_column( $includes, 'type' );
@@ -151,7 +214,16 @@ class Export_Function_Use extends Export_UnitTestCase {
 	 */
 	public function test_deprecation_version_in_function_uses() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'deprecated_func_caller' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			function deprecated_func_caller() {
+				_deprecated_function( __FUNCTION__, '3.0.0', 'new_func' );
+				some_legacy_work();
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'deprecated_func_caller' );
 		$this->assertIsArray( $func );
 
 		$uses = $func['uses']['functions'];
@@ -165,9 +237,18 @@ class Export_Function_Use extends Export_UnitTestCase {
 	 */
 	public function test_deprecation_version_in_method_scope() {
 
-		$class  = $this->find_entity_data_in( $this->export_data, 'classes', 'Deprecated_Method_Class' );
-		$this->assertIsArray( $class );
-		$method = $this->find_entity_data_in( $class, 'methods', 'old_method' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			class Deprecated_Method_Class {
+				public function old_method() {
+					_deprecated_function( __METHOD__, '4.0.0', 'new_method' );
+					SomeClass::legacy_call();
+				}
+			}
+			PHP
+		);
+
+		$method = $this->find_entity_data_in( $data, 'classes', 'Deprecated_Method_Class', 'methods', 'old_method' );
 		$this->assertIsArray( $method );
 
 		// deprecation_version is on the function uses (where _deprecated_function lives).

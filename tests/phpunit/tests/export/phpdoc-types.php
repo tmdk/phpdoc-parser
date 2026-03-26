@@ -17,7 +17,23 @@ class Export_PHPDoc_Types extends Export_UnitTestCase {
 	 */
 	public function test_type_alias_normalization() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_type_aliases' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Test type alias normalization.
+			 *
+			 * @param integer $count An integer value.
+			 * @param boolean $flag  A boolean value.
+			 * @param double  $ratio A double value.
+			 * @return boolean Whether it worked.
+			 */
+			function test_type_aliases( $count, $flag, $ratio ) {
+				return true;
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_type_aliases' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -37,7 +53,22 @@ class Export_PHPDoc_Types extends Export_UnitTestCase {
 	 */
 	public function test_capitalized_type_normalization() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_capitalized_types' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Test capitalized builtin type normalization.
+			 *
+			 * @param String $name  A string value.
+			 * @param Array  $items An array value.
+			 * @return String The name.
+			 */
+			function test_capitalized_types( $name, $items ) {
+				return $name;
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_capitalized_types' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -56,7 +87,22 @@ class Export_PHPDoc_Types extends Export_UnitTestCase {
 	 */
 	public function test_generic_array_shorthand_normalization() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_generic_array' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Test generic array shorthand normalization.
+			 *
+			 * @param array<int>   $numbers  Array of integers.
+			 * @param array<mixed> $anything Array of mixed values.
+			 * @return array<string> Array of strings.
+			 */
+			function test_generic_array( $numbers, $anything ) {
+				return [];
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_generic_array' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -73,7 +119,18 @@ class Export_PHPDoc_Types extends Export_UnitTestCase {
 	 */
 	public function test_untyped_param_defaults_to_mixed() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_untyped_param' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Test untyped parameter default.
+			 *
+			 * @param $value A value without explicit type.
+			 */
+			function test_untyped_param( $value ) {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_untyped_param' );
 		$this->assertIsArray( $func );
 
 		$param_tag = $func['doc']['tags'][0];
@@ -88,7 +145,19 @@ class Export_PHPDoc_Types extends Export_UnitTestCase {
 	 */
 	public function test_pass_by_reference_variable_extraction() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_ref_param' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Test pass-by-reference parameter variable extraction.
+			 *
+			 * @param string $regular A regular parameter.
+			 * @param string &$name   A pass-by-reference parameter.
+			 */
+			function test_ref_param( $regular, &$name ) {}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_ref_param' );
 		$this->assertIsArray( $func );
 
 		$tags = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) );
@@ -104,7 +173,21 @@ class Export_PHPDoc_Types extends Export_UnitTestCase {
 	 */
 	public function test_string_literal_quote_normalization() {
 
-		$func = $this->find_entity_data_in( $this->export_data, 'functions', 'test_string_literal_types' );
+		$data = $this->parse_string(
+			<<<'PHP'
+			/**
+			 * Test string literal type quote normalization.
+			 *
+			 * @param 'yes'|'no' $flag A flag value.
+			 * @return 'success'|'failure' The result.
+			 */
+			function test_string_literal_types( $flag ) {
+				return 'success';
+			}
+			PHP
+		);
+
+		$func = $this->find_entity_data_in( $data, 'functions', 'test_string_literal_types' );
 		$this->assertIsArray( $func );
 
 		$param_tag = array_values( array_filter( $func['doc']['tags'], fn( $t ) => $t['name'] === 'param' ) )[0];
